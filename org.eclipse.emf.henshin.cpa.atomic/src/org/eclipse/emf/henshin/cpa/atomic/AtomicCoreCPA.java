@@ -190,16 +190,26 @@ public class AtomicCoreCPA {
 		PushoutResult pushoutResult = constructPushout(rule1, rule2, s1); 
 		List<Edge> danglingEdges = new LinkedList<>();
 		//TODO: wo sollen hier die matches (match1 und match2) herkommen?
-		danglingEdges.addAll(findDanglingEdges(rule1, match1));
-		danglingEdges.addAll(findDanglingEdges(rule2, match2));
+		danglingEdges.addAll(findDanglingEdges(rule1, pushoutResult.getMappingsOfRule1()));
+		//TODO: anstelle einer Neuberechnung sollten hier die ge-cachten Ergebnisse der vorherigen Berechnung verwendet werden!
+		danglingEdges.addAll(findDanglingEdges(rule2, pushoutResult.getMappingsOfRule2()));
+		//TODO: anstelle einer Neuberechnung sollten hier die ge-cachten Ergebnisse der vorherigen Berechnung verwendet werden!
+		
+		
 		List<Edge> fixingEdges = new LinkedList<>();
 		for(Edge danglingEdge : danglingEdges){
 			//Frage: wofür steht das "e"? Welche Bedeutung hat das?
 			//antwort:	vermutlich für die Kante "e", die hier als danglingEdge behoben werden soll.
 			//	Frage: handelt es sich bei den "e"s um die zwischen S'_1 und S_1 wie in Definition3?
-			//TODO: Ist hier nicht der overlapGraph "G" notwendig?
-			//TODO: "fixingEdges" müssen ja irgendwie aus der Menge der Kanten der beiden Regeln stammen und vom Typ her zur danglingEdge passen (bzw. einer der SuperTypen sein)
-			List<Edge> fixingEdges_e = findFixingEdges(rule1, rule2, s1, danglingEdge);
+			// 	antwort: vermutlich nicht, denn dort scheint ein komplexerer morphismus gemeint zu sein zwischen zwei Graphen.
+			//			 hier ist vermutlich nur einfach nur eine der dangling edges gemeint. 
+			//TODO: Ist hier nicht der overlapGraph "G" notwendig? - 
+			// antwort: dieser ist leicht über die dangling edge emit "getGraph()" zu erhalten.
+			//TODO: "fixingEdges" müssen ja irgendwie aus der Menge der Kanten der beiden Regeln stammen 
+			// 		und vom Typ her zur danglingEdge passen (bzw. einer der SuperTypen sein)
+			// TODO: Aber irgendwie wird doch noch der morphismus(/match) zwischen den Regeln und der dangling edge gebraucht, oder?
+			// antwort: noch ungeklärt!!!!
+			List<Edge> fixingEdges_e = findFixingEdges(rule1, rule2, s1, danglingEdge, pushoutResult.getMappingsOfRule1(), pushoutResult.getMappingsOfRule2());
 			if(!fixingEdges_e.isEmpty()){
 				fixingEdges.addAll(fixingEdges_e);
 			}
@@ -214,6 +224,131 @@ public class AtomicCoreCPA {
 			List<Span> disjointCombinations = enumerateDisjointCombinations(s1, fixingEdges);
 			return disjointCombinations;
 		}		
+	}
+
+
+	/* Grundidee: die dangling edge hat als einen ihrer beiden Knoten definitiv einen Knoten aus dem Graph S1 des Spans!
+	 * Aus dem Papier: "A naïve implementation of this function may enumerate all adjacent edges 
+	 * 					in L1 OHNE S1 of e's context node in S1"
+	 * 	Optimierung aus dem Papier: nur "löschende Kanten" von L_1 berücksichtigen, da der Knoten auch bereits löschend war. 
+	 * 								(andernfalls wäre es ja nicht zur dangling edge gekommen.)
+	 * Sollte es keine fixing edges geben wird eine leere Menge zurückgegeben.
+	 * Ansonsten kann es antürlich mehrere fixing edges geben. Diese werden ALLE zurückgegeben!
+	 * 
+	 */
+	//TODO: höchstwahrscheinlich werden noch als zusätzliche Übergabeparameter die Mappings m_1 und m_2 benötigt
+		// --> Algo anpassen! (ansonsten kann der zugehörige knoten zur dangling edge nicht eindeutig in S1 bestimmt werden.)
+	//TODO: die zweite Optimierung haeb ich noch nciht verstanden!
+	//TODO: mwenn (mit Daniel?) geklärt ist, dass die matches notwendig sind, dann könnte man überlegen die beiden Listen von mapping edges 
+	//		und zusätzlich auch noch den Span s1 durch das "pushoutResult" zu ersetzen, da dieses alle drei kennen könnte(sollte?)
+	//		Alternativ wird das hinfällig wenn eine(/mehrere) zentrale Instanz(en) die MAppings verwaltet.(Stichwort "MappingHandler") 
+	public List<Edge> findFixingEdges(Rule rule1, Rule rule2, Span s1, Edge danglingEdge, List<Mapping> mappingOfRule1InOverlapG, List<Mapping> mappingOfRule2InOverlapG) {
+		List<Edge> fixingEdges = new LinkedList<Edge>();
+		//TODO: identifizieren des Knotens der dangling edge, der bereits in s1 enthalten ist.
+//		Dies ist der Knoten, für den es ein Mapping in beide REgeln gibt. (Für den anderen Knoten der KAnte wird dies nciht der falls ein. Gäbe es für beide Knoten ein Mapping in beide Regeln )
+//		Node
+		HashMap<Node, Mapping> mappingsOfImageNodesFromRule1InOverlapG = new HashMap<Node, Mapping>();	
+		for(Mapping mapping : mappingOfRule1InOverlapG){
+			Node imageNodeOfMapping = mapping.getImage();
+			mappingsOfImageNodesFromRule1InOverlapG.put(imageNodeOfMapping, mapping);
+		}
+		// ERkenntnis/Idee: source und target Knoten eines Mappings sind immer festgelegt auf eine rolle. 
+		// Ein source Knoten kann nie innerhalb dieserMappingbeziehung zum target Knoten werden und umgekehrt
+		// -> Idee: Es werden nicht zwie HashMaps benötigt für eine Menge von Mappings, sondern nur eine in der jedes Mapping als value zweimal vorkommt.
+		//			Einmal mit sienem origin als key und einmal mit seinem image als key.
+		// WICHTIG: da noch nicht ersichtlich ist wie der Hash der Klasse Node berechnet wird sollte beim Hinzufügen jedes Knoten in die HashMap im Rahmen ihrer Erstellung geprüft werden, 
+		//			dass noch kein Eintrag mit diesem Schlüssel vorhanden ist. 
+		//			(Falls doch, so ist zu überlegen, ob die hashCode() Funktion von Node für gen Einsatz in einer HashMap geeignet ist.
+		//TODO: ggf. zentralen "MappingHandler" anlegen.
+		// 
+		HashMap<Node, Mapping> mappingsOfImageNodesFromRule2InOverlapG = new HashMap<Node, Mapping>();	
+		for(Mapping mapping : mappingOfRule2InOverlapG){
+			Node imageNodeOfMapping = mapping.getImage();
+			mappingsOfImageNodesFromRule2InOverlapG.put(imageNodeOfMapping, mapping);
+		}
+		Node sourceNodeOfDanglingEdgeInOverlapG = danglingEdge.getSource();
+		Node targetNodeOfDanglingEdgeInOverlapG = danglingEdge.getTarget();
+		
+		//VORSICHT! vermutlich NPE!!!
+		//Lösung: zweistufiges vorgehen: erst Mapping holen und nur wenn dieses != null ist darauf zugreifen!
+		Node sourceNodeInRule1 = null;
+		Mapping mappingOfSourceNodeFromRule1ToOverlapG = mappingsOfImageNodesFromRule1InOverlapG.get(sourceNodeOfDanglingEdgeInOverlapG);
+		if(mappingOfSourceNodeFromRule1ToOverlapG != null){
+			sourceNodeInRule1 = mappingOfSourceNodeFromRule1ToOverlapG.getOrigin();
+		}
+		Node sourceNodeInRule2 = null;
+		Mapping mappingOfSourceNodeFromRule2ToOverlapG = mappingsOfImageNodesFromRule2InOverlapG.get(sourceNodeOfDanglingEdgeInOverlapG);
+		if(mappingOfSourceNodeFromRule2ToOverlapG != null){
+			sourceNodeInRule2 = mappingOfSourceNodeFromRule2ToOverlapG.getOrigin();
+		}
+		Node targetNodeInRule1 = null;
+		Mapping mappingOfTargetNodeFromRule1ToOverlapG = mappingsOfImageNodesFromRule1InOverlapG.get(targetNodeOfDanglingEdgeInOverlapG);
+		if(mappingOfTargetNodeFromRule1ToOverlapG != null){
+			targetNodeInRule1 = mappingOfTargetNodeFromRule1ToOverlapG.getOrigin();
+		}
+		Node targetNodeInRule2 = null;
+		Mapping mappingOfTargetNodeFromRule2ToOverlapG = mappingsOfImageNodesFromRule2InOverlapG.get(targetNodeOfDanglingEdgeInOverlapG);
+		if(mappingOfTargetNodeFromRule2ToOverlapG != null){
+			targetNodeInRule2 = mappingOfTargetNodeFromRule2ToOverlapG.getOrigin();
+		}
+		// WICHTIG: meistens sind nur drei der vier Knoten vorhanden.
+		
+		//Information zur Verknüpfung der Elemente im Graph des Span und der Regelknoten sind in den Mappings di eTeil des Spans sind!
+		Node sourceNodeInGraphOfSpanByRule1 = null;
+		if(sourceNodeInRule1 != null){
+			Mapping mappingOfSourceNodeFromGraphToRule1 = s1.getMappingFromGraphToRule1(sourceNodeInRule1); //TODO: kann das ergebnis null sein? insert NPE check?
+			sourceNodeInGraphOfSpanByRule1 = (mappingOfSourceNodeFromGraphToRule1 != null) ? mappingOfSourceNodeFromGraphToRule1.getOrigin() : null;
+		}
+		Node targetNodeInGraphOfSpanByRule1 = null;
+		if(targetNodeInRule1 != null){			
+			Mapping mappingOfTargetNodeFromGraphToRule1 = s1.getMappingFromGraphToRule1(targetNodeInRule1);
+			targetNodeInGraphOfSpanByRule1 = (mappingOfTargetNodeFromGraphToRule1 != null) ? mappingOfTargetNodeFromGraphToRule1.getOrigin() : null;
+		}
+		
+		Node sourceNodeInGraphOfSpanByRule2 = null;
+		if(sourceNodeInRule2 != null){			
+			Mapping mappingOfSourceNodeFromGraphToRule2 = s1.getMappingFromGraphToRule2(sourceNodeInRule2);
+			sourceNodeInGraphOfSpanByRule2 = (mappingOfSourceNodeFromGraphToRule2 != null) ? mappingOfSourceNodeFromGraphToRule2.getOrigin() : null;
+		}
+		Node targetNodeInGraphOfSpanByRule2 = null;
+		if(targetNodeInRule2 != null){
+			Mapping mappingOfTargetNodeFromGraphToRule2 = s1.getMappingFromGraphToRule2(targetNodeInRule2);
+			targetNodeInGraphOfSpanByRule2 = (mappingOfTargetNodeFromGraphToRule2 != null) ? mappingOfTargetNodeFromGraphToRule2.getOrigin() : null;			
+		}
+		
+		// generell sollten die beiden sourceNodeInGraphOfSpan (und die beiden targetNodeInGraphOfSpan jeweils) die selben sein.
+		
+		// In der Regel wird nur eins der beiden Paare erreicht und beim anderen Paar gibt es keins der beiden Mappings.
+		// Ist dennoch eines der beiden Mappings vorhanden liegt vermutlich ein Fehler vor
+		// Sind beide Paare vollständig vorhanden handelt es sich um einen Sonderfall in dem aber unabhängig voneinander die 
+		// potentiellen fixingEdges ermittelt werden können.
+		
+		//TODO: in Methode auslagern, da zweimal nahezu identischer code??? Oder doch zu viele unterschiede und zu verwirrend?
+		if(sourceNodeInGraphOfSpanByRule1 != null && sourceNodeInGraphOfSpanByRule2 != null){
+			Node sourceNodeToFixOutgoingEdge = sourceNodeInGraphOfSpanByRule1;
+			// - über alle ausgehenden Kanten in der Regel1 drübergehen und prüfen ob diese vom korrekten Typ sind und löschend sind
+			// if(yes): zu fixing edges hinzufügen
+			EList<Edge> outgoingEdgesOfSourceNodeInRule1 = sourceNodeInRule1.getOutgoing(danglingEdge.getType());
+			//TODO: check here, that we really have a node of the LHS of rule1 - otherwise there had been an error!
+			for(Edge outgoingEdgeOfSourceNodeInRule1 : outgoingEdgesOfSourceNodeInRule1){
+				if(outgoingEdgeOfSourceNodeInRule1.getAction().getType().equals(Action.Type.DELETE))
+					fixingEdges.add(outgoingEdgeOfSourceNodeInRule1);
+			}
+		}
+		
+		if(targetNodeInGraphOfSpanByRule1 != null && targetNodeInGraphOfSpanByRule2 != null){
+			Node targetNodeToFixOutgoingEdge = targetNodeInGraphOfSpanByRule1;
+			// - über alle eingehenden Kanten in der Regel1 drübergehen und prüfen ob diese vom korrekten Typ sind und löschend sind
+			// if(yes): zu fixing edges hinzufügen
+			EList<Edge> incomingEdgesOfTargetNodeInRule1 = targetNodeInRule1.getIncoming(danglingEdge.getType());
+			//TODO: check here, that we really have a node of the LHS of rule1 - otherwise there had been an error!
+			for(Edge incomingEdgeOfTargetNodeInRule1 : incomingEdgesOfTargetNodeInRule1){
+				if(incomingEdgeOfTargetNodeInRule1.getAction().getType().equals(Action.Type.DELETE))
+					fixingEdges.add(incomingEdgeOfTargetNodeInRule1);
+			}
+		}
+		
+		return fixingEdges;
 	}
 
 
@@ -369,6 +504,22 @@ public class AtomicCoreCPA {
 			mappingsInRule2.add(nodeInRule2Mapping);
 		}
 
+		public Mapping getMappingFromGraphToRule2(Node imageNode) {
+			for(Mapping mappingInRule2 : mappingsInRule2){
+				if(mappingInRule2.getImage() == imageNode)
+					return mappingInRule2;
+			}
+			return null;
+		}
+
+		public Mapping getMappingFromGraphToRule1(Node imageNode) {
+			for(Mapping mappingInRule1 : mappingsInRule1){
+				if(mappingInRule1.getImage() == imageNode)
+					return mappingInRule1;
+			}
+			return null;
+		}
+
 		public Span(List<Mapping> rule1Mappings, Graph s1, List<Mapping> rule2Mappings) {
 			this.mappingsInRule1 = rule1Mappings;
 			this.mappingsInRule2 = rule2Mappings;
@@ -380,18 +531,18 @@ public class AtomicCoreCPA {
 		}
 
 		//TODO use "getMappingWithImage(...)" method
-		public Mapping getMappingInRule1(Node node) {
+		public Mapping getMappingInRule1(Node originNode) {
 			for(Mapping mapping : mappingsInRule1){
-				if(mapping.getOrigin() == node)
+				if(mapping.getOrigin() == originNode)
 					return mapping;
 			}
 			return null;
 		}
 
 		//TODO use "getMappingWithImage(...)" method
-		public Mapping getMappingInRule2(Node node) {
+		public Mapping getMappingInRule2(Node originNode) {
 			for(Mapping mapping : mappingsInRule2){
-				if(mapping.getOrigin() == node)
+				if(mapping.getOrigin() == originNode)
 					return mapping;
 			}
 			return null;
@@ -579,15 +730,6 @@ public class AtomicCoreCPA {
 			return null;
 		}
 
-//		public Match getMatch1() {
-//			// TODO even return NULL?
-//			return match1;
-//		}
-//
-//		public Match getMatch2() {
-//			// TODO even return NULL?
-//			return match2;
-//		}
 		
 	}
 	
