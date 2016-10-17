@@ -1,14 +1,15 @@
 package org.eclipse.emf.henshin.cpa.atomic.unitTest;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.model.Graph;
 import org.eclipse.emf.henshin.model.Module;
 import org.eclipse.emf.henshin.model.Node;
 import org.eclipse.emf.henshin.model.Rule;
@@ -20,7 +21,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class ComputeCandidatesTest {
+public class ComputeMinReasonsTest {
 
 	final String PATH = "testData/refactoring/";
 	final String henshinFileName = "refactorings.henshin";
@@ -64,8 +65,25 @@ public class ComputeCandidatesTest {
 			EList<Node> nodesOfCandidate = candidate.getGraph().getNodes();
 			assertEquals(1, nodesOfCandidate.size());
 			Node nodeOfCandidate = nodesOfCandidate.get(0); 
-			System.out.println(nodeOfCandidate.getName() +":" +nodeOfCandidate.getType().getName());
+//			System.out.println(nodeOfCandidate.getName() +":" +nodeOfCandidate.getType().getName());
 		}
+		
+		List<Span> reasons = new LinkedList<>();//
+		for(Span candidate : conflictAtomCandidates){
+			atomicCoreCPA.computeMinReasons(decapsulateAttributeRule, pullUpEncapsulatedAttributeRule, candidate, reasons);
+		}
+		for(Span minReason : reasons){
+			// wieso sind es 8 minReason? Das erscheint mir nicht korrekt. 
+			Graph graphOfMinReason = minReason.getGraph();
+			EList<Node> nodesOfMinReason = graphOfMinReason.getNodes();
+			System.out.println("NumberOfnodesInMinReason: " +nodesOfMinReason.size());
+			System.out.println(nodesOfMinReason.toString());
+		}
+//			if(reasons.isEmpty()){
+//				result.add(new ConflictAtom(candidate, reasons));
+//				//TODO: wieso ein Atom die "reasons" benötigt ist mir noch unklar.
+//				// Bzw.was die Datenstruktur "Atom" überhaupt umfasst.
+//			}
 
 		//TODO: Wieso überhaupt Spans? 
 		

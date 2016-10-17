@@ -138,7 +138,7 @@ public class AtomicCoreCPA {
 		return result;
 	}
 	
-	private void computeMinReasons(Rule rule1, Rule rule2, Span s1, List<Span> reasons) {
+	public void computeMinReasons(Rule rule1, Rule rule2, Span s1, List<Span> reasons) {
 		if(isMinReason(rule1, rule2, s1)){
 			reasons.add(s1);
 			return;
@@ -221,9 +221,9 @@ public class AtomicCoreCPA {
 				return new LinkedList<Span>();// oder NULL?
 			}
 			// Frage: Was genau ist das, die disjointCombinations?
-			List<Span> disjointCombinations = enumerateDisjointCombinations(s1, fixingEdges);
-			return disjointCombinations;
 		}		
+		List<Span> disjointCombinations = enumerateDisjointCombinations(s1, fixingEdges);
+		return disjointCombinations;
 	}
 
 
@@ -353,9 +353,167 @@ public class AtomicCoreCPA {
 
 
 	// TODO: bisher nicht weiter spezifiziert!
-	private List<Span> enumerateDisjointCombinations(Span s1, List<Edge> fixingEdges) {
-		// TODO Auto-generated method stub
-		return null;
+	public List<Span> enumerateDisjointCombinations(Span s1, List<Edge> fixingEdges) {
+		List<Span> disjointCombinations = new LinkedList<Span>();
+//		Für jede Kante in fixingEdges wird ein neuer Span erzeugt und dieser um die jeweilige Kante vergrößert.
+		for(Edge fixingEdge : fixingEdges){
+//			Dabei müssen auch entsprechend neue Mappings erzeugt werden!
+//			TODO: die Kopie für dne neuen Span muss zuerst erstellt werden und die neuen Knotne und KAnten in der Kopie erstellt werden, 
+//					sowie die neuen Mappings der Kopie hinzugefügt werden!					
+			Span newSpan = new Span(s1);
+			//TODO: prüfen, dass die Art des erstellens einer Kopie korrekt ist. 
+//			ToDo: (/Fehler!) zur Erweiterung des Span um eine Kante der Regel 1 kann es mehrere passende Kanten der Regel 2 geben. 
+//						-> eine weitere Schleife ist notwendig!
+			Node newNodeInGraph = null;
+			Node alreadyExistingNodeInGraph = null;
+			Node sourceNodeInGraph = null;
+			Node targetNodeInGraph = null;			
+			Node sourceNodeOfFixingEdgeInRule1 = fixingEdge.getSource();
+			Mapping mappingOfsourceNodeOfFixingEdgeInRule1 = newSpan.getMappingFromGraphToRule1(sourceNodeOfFixingEdgeInRule1);
+			// wenn NULL - erstellen von Knoten und Kante in graph, und mapping
+			if(mappingOfsourceNodeOfFixingEdgeInRule1 == null){
+				// Knoten in graph von Span erstellen
+				newNodeInGraph = henshinFactory.createNode(newSpan.getGraph(), sourceNodeOfFixingEdgeInRule1.getType(), sourceNodeOfFixingEdgeInRule1.getName()+"_");
+				sourceNodeInGraph = newNodeInGraph;
+				//TODO: Mapping in den Span hinzufügen!
+				Mapping newSourceNodeMapping = henshinFactory.createMapping(newNodeInGraph, sourceNodeOfFixingEdgeInRule1);
+				newSpan.mappingsInRule1.add(newSourceNodeMapping);
+			}
+			else{
+				sourceNodeInGraph = mappingOfsourceNodeOfFixingEdgeInRule1.getOrigin();
+				alreadyExistingNodeInGraph = sourceNodeInGraph;
+			}
+			Node targetNodeOfFixingEdgeInRule1 = fixingEdge.getTarget();
+			Mapping mappingOftargetNodeOfFixingEdgeInRule2 = newSpan.getMappingFromGraphToRule1(targetNodeOfFixingEdgeInRule1);
+			// wenn NULL - erstellen von Knoten und Kante in graph, und mapping
+			if(mappingOftargetNodeOfFixingEdgeInRule2 == null){
+				// Knoten in graph von Span erstellen
+				newNodeInGraph = henshinFactory.createNode(newSpan.getGraph(), targetNodeOfFixingEdgeInRule1.getType(), targetNodeOfFixingEdgeInRule1.getName()+"_");
+				targetNodeInGraph = newNodeInGraph;
+				//TODO: Mapping in den Span hinzufügen!
+				Mapping newSourceNodeMapping = henshinFactory.createMapping(newNodeInGraph, targetNodeOfFixingEdgeInRule1);
+				newSpan.mappingsInRule1.add(newSourceNodeMapping);
+			}
+			else{
+				targetNodeInGraph = mappingOftargetNodeOfFixingEdgeInRule2.getOrigin();
+				alreadyExistingNodeInGraph = targetNodeInGraph;
+			}
+			// create corresponding edge of fixingEdge in graph of span.
+			Edge fixingEdgeInGraphOfSpan = henshinFactory.createEdge(sourceNodeInGraph, targetNodeInGraph, fixingEdge.getType());
+			
+			//find all potential "use" edges in Rule2
+				// find sourceNode or TargetNode in Rule2
+//			List<Edge> potentialUsageEdgesOfFixingEdgeInRule2 = null; // TODO: seems to be superfluous right now!
+			List<Mapping> mappingsOfUsageEdgesInRule2 = new LinkedList<Mapping>();
+			Mapping alreadyExistingMappingInRule2 = newSpan.getMappingInRule2(alreadyExistingNodeInGraph);
+			if(alreadyExistingMappingInRule2.getOrigin().getOutgoing().contains(fixingEdgeInGraphOfSpan)){
+//				dann werden zum Knoten in Regel2 die ausgehenden Kanten nach potentiellen "use" Kanten durchsucht.
+//				dabei sollte immer mindestens eine zu finden sein, sonst wäre es gar nicht zur dangling edge gekommen.
+				EList<Edge> potentialUsageEdgesOfFixingEdgeInRule2EList = alreadyExistingMappingInRule2.getImage().getOutgoing(fixingEdgeInGraphOfSpan.getType());
+//				potentialUsageEdgesOfFixingEdgeInRule2.addAll(potentialUsageEdgesOfFixingEdgeInRule2EList); // TODO: seems to be superfluous right now!
+				//anstelle nur der usageEdges zu ermitteln am besten auch gleich Knoten und letztlich mapping ermitteln/erzeugen
+					// dann aber auch gleich ggf den neuen Span erzeugen!
+				
+//				Im Fall nur einer potentiell nutzenden Kante reicht es aus den "newSpan", der bereits ein Kopie des ursprünglichen ist, zu erweitern.
+//				andernfalls müssen weitere Kopien erzeugt werden.
+				if(potentialUsageEdgesOfFixingEdgeInRule2EList.size() == 0){
+					//irgendwas ist schief gelaufen. Es wurde festgestellt, dass eine fixing edge benötigt wird, aber keine passende fixing edge gefunden.
+				}
+				else if(potentialUsageEdgesOfFixingEdgeInRule2EList.size() ==1){
+					//es gibt nur eine fixing edge, "newSpan" kann dafür verwendet werden
+					//build new mapping for fixing edge
+					// herausfinden welcher der Knoten in Rule2 bereits durch ein mapping abgedeckt ist
+						// an dieser Stelle im code immer der source Knoten
+					Edge fixingEdgeInRule2 = potentialUsageEdgesOfFixingEdgeInRule2EList.get(0);
+//					if(fixingEdge.)
+						// origin Knoten des mappings sollte schon durch die Verarbeitung von Regel 1 erzeugt worden sein.
+					Mapping newMappingForFixingEdgeinRule2 = henshinFactory.createMapping(newNodeInGraph, fixingEdgeInRule2.getTarget());
+					newSpan.mappingsInRule2.add(newMappingForFixingEdgeinRule2);
+					disjointCombinations.add(newSpan);
+				}
+				// mehr als eine fixing edge vorhanden. Für jede muss ein neuer Span angelegt werden.				
+				else{
+					for(Edge potentialUsageEdgeOfFixingEdgeInRule2 : potentialUsageEdgesOfFixingEdgeInRule2EList){
+						Span newSpanPerUsageEdge = new Span(newSpan);
+						Mapping targetNodeOfFixingEdgeMapping = newSpanPerUsageEdge.getMappingFromGraphToRule1(targetNodeOfFixingEdgeInRule1);
+						// "newNodeInGraph"  muss nach dem Kopieren von newSpan ermittelt werden!
+						Node newNodeDueToTargetNodeInGraph = targetNodeOfFixingEdgeMapping.getOrigin();
+						Edge fixingEdgeInRule2 = potentialUsageEdgeOfFixingEdgeInRule2;
+						Mapping newMappingForFixingEdgeinRule2 = henshinFactory.createMapping(newNodeDueToTargetNodeInGraph, fixingEdgeInRule2.getTarget());
+						newSpanPerUsageEdge.mappingsInRule2.add(newMappingForFixingEdgeinRule2);
+						disjointCombinations.add(newSpanPerUsageEdge);
+					}
+				}
+			}
+			if(alreadyExistingMappingInRule2.getOrigin().getIncoming().contains(fixingEdgeInGraphOfSpan)){
+//				dann werden zum Knoten in Regel2 die eingehenden Kanten nach potentiellen "use" Kanten durchsucht.
+//				dabei sollte immer mindestens eine zu finden sein, sonst wäre es gar nicht zur dangling edge gekommen.
+				EList<Edge> potentialUsageEdgesOfFixingEdgeInRule2EList = alreadyExistingMappingInRule2.getImage().getIncoming(fixingEdgeInGraphOfSpan.getType());
+//				potentialUsageEdgesOfFixingEdgeInRule2.addAll(potentialUsageEdgesOfFixingEdgeInRule2);
+				//anstelle nur der usageEdges zu ermitteln am besten auch gleich Knoten und letztlich mapping ermitteln/erzeugen
+					//dann aber auch gleich ggf. den neuen Span erzeugen
+
+//				Im Fall nur einer potentiell nutzenden Kante reicht es aus den "newSpan", der bereits ein Kopie des ursprünglichen ist, zu erweitern.
+//				andernfalls müssen weitere Kopien erzeugt werden.
+				if(potentialUsageEdgesOfFixingEdgeInRule2EList.size() == 0){
+					//irgendwas ist schief gelaufen. Es wurde festgestellt, dass eine fixing edge benötigt wird, aber keine passende fixing edge gefunden.
+				}
+				else if(potentialUsageEdgesOfFixingEdgeInRule2EList.size() ==1){
+					//es gibt nur eine fixing edge, "newSpan" kann dafür verwendet werden
+					//build new mapping for fixing edge
+					// herausfinden welcher der Knoten in Rule2 bereits durch ein mapping abgedeckt ist
+						// an dieser Stelle im code immer der source Knoten
+					Edge fixingEdgeInRule2 = potentialUsageEdgesOfFixingEdgeInRule2EList.get(0);
+//					if(fixingEdge.)
+						// origin Knoten des mappings sollte schon durch die Verarbeitung von Regel 1 erzeugt worden sein.
+					Mapping newMappingForFixingEdgeinRule2 = henshinFactory.createMapping(newNodeInGraph, fixingEdgeInRule2.getSource());
+					newSpan.mappingsInRule2.add(newMappingForFixingEdgeinRule2);
+					disjointCombinations.add(newSpan);
+				}
+				// mehr als eine fixing edge vorhanden. Für jede muss ein neuer Span angelegt werden.				
+				else{
+					for(Edge potentialUsageEdgeOfFixingEdgeInRule2 : potentialUsageEdgesOfFixingEdgeInRule2EList){
+						Span newSpanPerUsageEdge = new Span(newSpan);
+						Mapping sourceNodeOfFixingEdgeMapping = newSpanPerUsageEdge.getMappingFromGraphToRule1(sourceNodeOfFixingEdgeInRule1);
+						// "newNodeInGraph"  muss nach dem Kopieren von newSpan ermittelt werden!
+						Node newNodeDueToSourceNodeInGraph = sourceNodeOfFixingEdgeMapping.getOrigin();
+						Edge fixingEdgeInRule2 = potentialUsageEdgeOfFixingEdgeInRule2;
+						Mapping newMappingForFixingEdgeinRule2 = henshinFactory.createMapping(newNodeDueToSourceNodeInGraph, fixingEdgeInRule2.getSource());
+						newSpanPerUsageEdge.mappingsInRule2.add(newMappingForFixingEdgeinRule2);
+						disjointCombinations.add(newSpanPerUsageEdge);
+					}
+				}
+			}
+			
+			// das scheinen alles noch Überreste der Entwicklung zu sein.
+//			//TODO: create mappingS of potential "use"-Edges
+//			
+//			
+////				Im Fall nur einer potentiell nutzenden Kante reicht es aus den "newSpan", der bereits ein Kopie des ursprünglichen ist, zu erweitern.
+////				andernfalls müssen weitere Kopien erzeugt werden.
+//			if(potentialUsageEdgesOfFixingEdgeInRule2.size() == 0){
+//				//irgendwas ist schief gelaufen. Es wurde festgestellt, dass eine fixing edge benötigt wird, aber keine passende fixing edge gefunden.
+//			}
+//			else if(potentialUsageEdgesOfFixingEdgeInRule2.size() ==1){
+//				//es gibt nur eine fixing edge, "newSpan" kann dafür verwendet werden
+//				//build new mapping for fixing edge
+//				// herausfinden welcher der Knoten in Rule2 bereits durch ein mapping abgedeckt ist und zu welchem Knoten noch ein mapping erstellt werden muss
+//				Edge fixingEdgeInRule2 = potentialUsageEdgesOfFixingEdgeInRule2.get(0);
+//				if(fixingEdge.)
+//				
+//				alreadyExistingMappingInRule2.getImage()
+//				newSpan.expand(fixingEdge);
+//				disjointCombinations.add(newSpan);
+//			}
+//			else{
+//				// mehr als eine fixing edge vorhanden. Für jede muss ein neuer Span angelegt werden.
+//				TODO: an dieser Stelle muss neben der Kante der Regel1 (fixingEdge) auch die Kante der Regel2 und der Knoten übergeben werden!
+//				Oder gleich die fertigen mappings!
+//				for(Edge fixingEdgeInRule2 : potentialUsageEdgesOfFixingEdgeInRule2){		
+//				}					
+//			}
+		}
+		return disjointCombinations;
 	}
 
 	// TODO: bisher nicht weiter spezifiziert!
@@ -463,12 +621,29 @@ public class AtomicCoreCPA {
 	// TODO: noch ist unklar ob eine solche Datenstruktur notwendig ist, 
 	//		oder es sich um Instanzen einer bereits bekannten Datenstruktur handelt.
 	// 		Je nach Ergebnis löschen oder in eigenständiges class-file auslagern.
-	private class ConflictAtom{
+	public class ConflictAtom{
+		Span span;
+		/**
+		 * @return the span
+		 */
+		public Span getSpan() {
+			return span;
+		}
+
+		/**
+		 * @return the reasons
+		 */
+		public List<Span> getReasons() {
+			return reasons;
+		}
+
+		List<Span> reasons;
 
 		// in Algo Zeile 6 wird ein Atom mit den Parametern candidate und reasons initilisiert.
 		// dennoch ist die Datenstruktur noch nicht klar!
 		public ConflictAtom(Span candidate, List<Span> reasons) {
-			// TODO Auto-generated constructor stub
+			this.span = candidate;
+			this.reasons = reasons;
 		}
 		
 	}
@@ -494,6 +669,115 @@ public class AtomicCoreCPA {
 		List<Mapping> mappingsInRule1;
 		List<Mapping> mappingsInRule2;
 		
+		
+		// Scheint derzeit ncoh überflüssig zu sein!
+		/* (non-Javadoc)
+		 * @see java.lang.Object#hashCode()
+		 */
+//		@Override
+//		public int hashCode() {
+//			final int prime = 31;
+//			int result = 1;
+//			result = prime * result + getOuterType().hashCode();
+//			result = prime * result + ((graph == null) ? 0 : graph.hashCode());
+//			result = prime * result + ((mappingsInRule1 == null) ? 0 : mappingsInRule1.hashCode());
+//			result = prime * result + ((mappingsInRule2 == null) ? 0 : mappingsInRule2.hashCode());
+//			return result;
+//		}
+
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			Span other = (Span) obj;
+//			if (!getOuterType().equals(other.getOuterType())) //specific for inner class - might be irrelevant by extraction to own class file!
+//				return false;
+			if (graph == null) { //should never happen!
+				if (other.graph != null) //should never happen!
+					return false;
+			} else{
+				// !graph.equals(other.graph)
+				/*
+				 * TODO:
+				 * 1. vergleichen, dass die Anzahl der Elemente im Graph gleich sind 
+				 * 2. für jedes Element im Graph das jeweils passende im anderen Graph finden!
+				 * 3. je Element prüfen, dass die Mappings das selbe Ziel haben.
+				 * 		Vorteil hierbei ist, dass die Regeln die selben sind und osmit die ziele mit "==" verglichen werden können.  
+				 */
+				//compare "size" of Graphs
+					EList<Node> ownNodes = graph.getNodes();
+					EList<Node> otherNodes = other.graph.getNodes();
+					if(ownNodes.size() != otherNodes.size()){
+						return false;
+					}
+					EList<Edge> ownEdges = graph.getEdges();
+					EList<Edge> otherEdges = other.getGraph().getEdges();
+					if(ownEdges.size() != otherEdges.size()){
+						return false;
+					}					
+					
+				// build allocation between own graph elements and others graph elements.
+					// all mappings in the first rule should be the same!
+					for(Node nodeInOwnGraph : ownNodes){
+						// get mapping and node in rule1
+						Mapping mappingOfNodeInRule1 = getMappingInRule1(nodeInOwnGraph);
+						Node associatedNodeInRule1 = mappingOfNodeInRule1.getImage();
+						// get mapping in otherGraph
+						Mapping mappingOfOtherNodeInRule1 = other.getMappingFromGraphToRule1(associatedNodeInRule1);
+						if(mappingOfOtherNodeInRule1 == null)
+							return false;
+						Node nodeInOtherGraph = mappingOfOtherNodeInRule1.getOrigin();
+						// check that both mappings in rule 2 have the same target
+						Mapping mappingOfNodeInRule2 = getMappingInRule2(nodeInOwnGraph);
+						Node associatedNodeInRule2 = mappingOfNodeInRule2.getImage();
+						Mapping mappingOfOtherNodeInRule2 = other.getMappingInRule2(nodeInOtherGraph);
+						Node associatedNodeOfOtherGraphInRule2 = mappingOfOtherNodeInRule2.getImage();
+						if(associatedNodeOfOtherGraphInRule2 == associatedNodeInRule2)
+							return true;
+					}
+					
+				//
+					
+					
+//				return false;
+			}
+//			if (mappingsInRule1 == null) {
+//				if (other.mappingsInRule1 != null)
+//					return false;
+//			} else if (!mappingsInRule1.equals(other.mappingsInRule1))
+//				return false;
+//			if (mappingsInRule2 == null) {
+//				if (other.mappingsInRule2 != null)
+//					return false;
+//			} else if (!mappingsInRule2.equals(other.mappingsInRule2))
+//				return false;
+			return false;
+		}
+
+
+		/**
+		 * @return the mappingsInRule1
+		 */
+		public List<Mapping> getMappingsInRule1() {
+			return mappingsInRule1;
+		}
+		
+
+		/**
+		 * @return the mappingsInRule2
+		 */
+		public List<Mapping> getMappingsInRule2() {
+			return mappingsInRule2;
+		}
+
 		Graph graph;
 
 		public Span(Mapping nodeInRule1Mapping, Graph s1, Mapping nodeInRule2Mapping) {
@@ -526,6 +810,33 @@ public class AtomicCoreCPA {
 			this.graph = s1;
 		}
 
+		public Span(Span s1) {
+//			copy Graph and mappings!
+			// Copier
+			Copier copierForSpanAndMappings= new Copier();
+			// copy of graph
+			Graph copiedGraph = (Graph) copierForSpanAndMappings.copy(s1.getGraph());
+			copierForSpanAndMappings.copyReferences();
+			this.graph = copiedGraph;
+			
+			//TODO: extract to method
+			List<Mapping> mappingsInRule1 = new LinkedList<Mapping>();
+			for(Mapping mapping : s1.getMappingsInRule1()){
+				Mapping copiedMapping = (Mapping) copierForSpanAndMappings.copy(mapping);
+				copierForSpanAndMappings.copyReferences();
+				mappingsInRule1.add(copiedMapping);				
+			}
+			this.mappingsInRule1 = mappingsInRule1;
+			
+			List<Mapping> mappingsInRule2 = new LinkedList<Mapping>();
+			for(Mapping mapping : s1.getMappingsInRule2()){
+				Mapping copiedMapping = (Mapping) copierForSpanAndMappings.copy(mapping);
+				copierForSpanAndMappings.copyReferences();
+				mappingsInRule2.add(copiedMapping);				
+			}
+			this.mappingsInRule2 = mappingsInRule2;
+		}
+
 		public Graph getGraph() {
 			return graph;			
 		}
@@ -546,6 +857,11 @@ public class AtomicCoreCPA {
 					return mapping;
 			}
 			return null;
+		}
+
+
+		private AtomicCoreCPA getOuterType() {
+			return AtomicCoreCPA.this;
 		}
 		
 	}
