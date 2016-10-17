@@ -18,10 +18,7 @@ import org.eclipse.emf.henshin.model.Rule;
 import org.eclipse.emf.henshin.model.Unit;
 import org.eclipse.emf.henshin.model.impl.HenshinFactoryImpl;
 import org.eclipse.emf.henshin.model.resource.HenshinResourceSet;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class FindDanglingEdgesTest {
@@ -32,125 +29,122 @@ public class FindDanglingEdgesTest {
 	Rule decapsulateAttributeRule;
 	Rule pullUpEncapsulatedAttributeRule;
 
-
 	@Before
 	public void setUp() throws Exception {
 		HenshinResourceSet resourceSet = new HenshinResourceSet(PATH);
 		Module module = resourceSet.getModule(henshinFileName, false);
-		
-		for(Unit unit : module.getUnits()){
-			if(unit.getName().equals("decapsulateAttribute"))
+
+		for (Unit unit : module.getUnits()) {
+			if (unit.getName().equals("decapsulateAttribute"))
 				decapsulateAttributeRule = (Rule) unit;
-			if(unit.getName().equals("pullUpEncapsulatedAttribute"))
+			if (unit.getName().equals("pullUpEncapsulatedAttribute"))
 				pullUpEncapsulatedAttributeRule = (Rule) unit;
 		}
 	}
 
 	@Test
 	public void findDanglingEdges_2_13() {
-		
+
 		Node node2InLhsOfRule1 = decapsulateAttributeRule.getLhs().getNode("2");
 		Node node13InLhsOfRule2 = pullUpEncapsulatedAttributeRule.getLhs().getNode("13");
-		
+
 		HenshinFactory henshinFactory = new HenshinFactoryImpl();
 		Graph graphOfSpan = henshinFactory.createGraph();
 		Node commonNodeOfSpan = henshinFactory.createNode(graphOfSpan, node2InLhsOfRule1.getType(), "2,13");
-		
+
 		Mapping node2InRule1Mapping = henshinFactory.createMapping(commonNodeOfSpan, node2InLhsOfRule1);
 		Mapping node13InRule2Mapping = henshinFactory.createMapping(commonNodeOfSpan, node13InLhsOfRule2);
-		
+
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 		Span span = atomicCoreCPA.newSpan(node2InRule1Mapping, graphOfSpan, node13InRule2Mapping);
-		
-		PushoutResult pushoutResult = atomicCoreCPA.newPushoutResult(decapsulateAttributeRule, span, pullUpEncapsulatedAttributeRule);
-		Graph resultGraph = pushoutResult.getResultGraph();
-		
-		List<Edge> findDanglingEdges = atomicCoreCPA.findDanglingEdges(decapsulateAttributeRule, pushoutResult.getMappingsOfRule1());
-		
+
+		PushoutResult pushoutResult = atomicCoreCPA.newPushoutResult(decapsulateAttributeRule, span,
+				pullUpEncapsulatedAttributeRule);
+
+		List<Edge> findDanglingEdges = atomicCoreCPA.findDanglingEdges(decapsulateAttributeRule,
+				pushoutResult.getMappingsOfRule1());
+
 		assertEquals(2, findDanglingEdges.size());
-		
-		// prüfen, dass es sich um eine Kante von "11:Class" nach "13:Method" handelt und um eine Kante von "13:Method" nach "16:Class".
+
 		boolean methodsEdgeDetected = false;
 		boolean typeEdgeDetected = false;
-		
-		for(Edge danglingEdge : findDanglingEdges){
-			if(danglingEdge.getType().getName().equals("methods")){
-				//Do check source and target!
+
+		for (Edge danglingEdge : findDanglingEdges) {
+			if (danglingEdge.getType().getName().equals("methods")) {
+				// Do check source and target!
 				Node sourceNode = danglingEdge.getSource();
 				String sourceNodeName = sourceNode.getName();
-				if(sourceNodeName.equals("11"))
+				if (sourceNodeName.equals("11"))
 					methodsEdgeDetected = true;
 			}
-			if(danglingEdge.getType().getName().equals("type")){
+			if (danglingEdge.getType().getName().equals("type")) {
 				Node targetNode = danglingEdge.getTarget();
 				String targetNodeName = targetNode.getName();
-				if(targetNodeName.equals("16"))
+				if (targetNodeName.equals("16"))
 					typeEdgeDetected = true;
 			}
 		}
-		
-		assertEquals(true, methodsEdgeDetected);
-		assertEquals(true, typeEdgeDetected);
-	}
-	
-	@Test
-	public void findDanglingEdges_3_14() {
-		
-		Node node3InLhsOfRule1 = decapsulateAttributeRule.getLhs().getNode("3");
-		Node node14InLhsOfRule2 = pullUpEncapsulatedAttributeRule.getLhs().getNode("14");
-		
-		HenshinFactory henshinFactory = new HenshinFactoryImpl();
-		Graph graphOfSpan = henshinFactory.createGraph();
-		Node commonNodeOfSpan = henshinFactory.createNode(graphOfSpan, node3InLhsOfRule1.getType(), "3,14");
-		
-		Mapping node3InRule1Mapping = henshinFactory.createMapping(commonNodeOfSpan, node3InLhsOfRule1);
-		Mapping node14InRule2Mapping = henshinFactory.createMapping(commonNodeOfSpan, node14InLhsOfRule2);
-		
-		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		Span span = atomicCoreCPA.newSpan(node3InRule1Mapping, graphOfSpan, node14InRule2Mapping);
-		
-		PushoutResult pushoutResult = atomicCoreCPA.newPushoutResult(decapsulateAttributeRule, span, pullUpEncapsulatedAttributeRule);
-		Graph resultGraph = pushoutResult.getResultGraph();
-		
-		List<Edge> findDanglingEdges = atomicCoreCPA.findDanglingEdges(decapsulateAttributeRule, pushoutResult.getMappingsOfRule1());
-		
-		assertEquals(2, findDanglingEdges.size());
-		
-		// prüfen, dass es sich um eine Kante von "11:Class" nach "13:Method" handelt und um eine Kante von "13:Method" nach "16:Class".
-		boolean methodsEdgeDetected = false;
-		boolean typeEdgeDetected = false;
-		
-		for(Edge danglingEdge : findDanglingEdges){
-			if(danglingEdge.getType().getName().equals("methods")){
-				//Do check source and target!
-				Node sourceNode = danglingEdge.getSource();
-				String sourceNodeName = sourceNode.getName();
-				if(sourceNodeName.equals("11"))
-					methodsEdgeDetected = true;
-			}
-			if(danglingEdge.getType().getName().equals("parameters")){
-				Node targetNode = danglingEdge.getTarget();
-				String targetNodeName = targetNode.getName();
-				if(targetNodeName.equals("15"))
-					typeEdgeDetected = true;
-			}
-		}
-		
+
 		assertEquals(true, methodsEdgeDetected);
 		assertEquals(true, typeEdgeDetected);
 	}
 
-	
+	@Test
+	public void findDanglingEdges_3_14() {
+
+		Node node3InLhsOfRule1 = decapsulateAttributeRule.getLhs().getNode("3");
+		Node node14InLhsOfRule2 = pullUpEncapsulatedAttributeRule.getLhs().getNode("14");
+
+		HenshinFactory henshinFactory = new HenshinFactoryImpl();
+		Graph graphOfSpan = henshinFactory.createGraph();
+		Node commonNodeOfSpan = henshinFactory.createNode(graphOfSpan, node3InLhsOfRule1.getType(), "3,14");
+
+		Mapping node3InRule1Mapping = henshinFactory.createMapping(commonNodeOfSpan, node3InLhsOfRule1);
+		Mapping node14InRule2Mapping = henshinFactory.createMapping(commonNodeOfSpan, node14InLhsOfRule2);
+
+		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
+		Span span = atomicCoreCPA.newSpan(node3InRule1Mapping, graphOfSpan, node14InRule2Mapping);
+
+		PushoutResult pushoutResult = atomicCoreCPA.newPushoutResult(decapsulateAttributeRule, span,
+				pullUpEncapsulatedAttributeRule);
+
+		List<Edge> findDanglingEdges = atomicCoreCPA.findDanglingEdges(decapsulateAttributeRule,
+				pushoutResult.getMappingsOfRule1());
+
+		assertEquals(2, findDanglingEdges.size());
+
+		boolean methodsEdgeDetected = false;
+		boolean typeEdgeDetected = false;
+
+		for (Edge danglingEdge : findDanglingEdges) {
+			if (danglingEdge.getType().getName().equals("methods")) {
+				Node sourceNode = danglingEdge.getSource();
+				String sourceNodeName = sourceNode.getName();
+				if (sourceNodeName.equals("11"))
+					methodsEdgeDetected = true;
+			}
+			if (danglingEdge.getType().getName().equals("parameters")) {
+				Node targetNode = danglingEdge.getTarget();
+				String targetNodeName = targetNode.getName();
+				if (targetNodeName.equals("15"))
+					typeEdgeDetected = true;
+			}
+		}
+
+		assertEquals(true, methodsEdgeDetected);
+		assertEquals(true, typeEdgeDetected);
+	}
+
 	@Test
 	public void findNoDanglingEdges_1_2_6_11_13_16() {
-		
+
 		Node node1InLhsOfRule1 = decapsulateAttributeRule.getLhs().getNode("1");
 		Node node2InLhsOfRule1 = decapsulateAttributeRule.getLhs().getNode("2");
 		Node node6InLhsOfRule1 = decapsulateAttributeRule.getLhs().getNode("6");
 		Node node11InLhsOfRule2 = pullUpEncapsulatedAttributeRule.getLhs().getNode("11");
 		Node node13InLhsOfRule2 = pullUpEncapsulatedAttributeRule.getLhs().getNode("13");
 		Node node16InLhsOfRule2 = pullUpEncapsulatedAttributeRule.getLhs().getNode("16");
-		
+
 		HenshinFactory henshinFactory = new HenshinFactoryImpl();
 		Graph graphOfSpan = henshinFactory.createGraph();
 		List<Mapping> rule1Mappings = new LinkedList<Mapping>();
@@ -170,39 +164,16 @@ public class FindDanglingEdgesTest {
 		rule1Mappings.add(node6InRule1Mapping);
 		Mapping node16InRule2Mapping = henshinFactory.createMapping(commonNode6_16OfSpan, node16InLhsOfRule2);
 		rule2Mappings.add(node16InRule2Mapping);
-		
-		
+
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 		Span span = atomicCoreCPA.newSpan(rule1Mappings, graphOfSpan, rule2Mappings);
-		
-		PushoutResult pushoutResult = atomicCoreCPA.newPushoutResult(decapsulateAttributeRule, span, pullUpEncapsulatedAttributeRule);
-		Graph resultGraph = pushoutResult.getResultGraph();
-		
-		List<Edge> findDanglingEdges = atomicCoreCPA.findDanglingEdges(decapsulateAttributeRule, pushoutResult.getMappingsOfRule1());
-		
+
+		PushoutResult pushoutResult = atomicCoreCPA.newPushoutResult(decapsulateAttributeRule, span,
+				pullUpEncapsulatedAttributeRule);
+
+		List<Edge> findDanglingEdges = atomicCoreCPA.findDanglingEdges(decapsulateAttributeRule,
+				pushoutResult.getMappingsOfRule1());
+
 		assertEquals(0, findDanglingEdges.size());
-		
-//		// prüfen, dass es sich um eine Kante von "11:Class" nach "13:Method" handelt und um eine Kante von "13:Method" nach "16:Class".
-//		boolean methodsEdgeDetected = false;
-//		boolean typeEdgeDetected = false;
-//		
-//		for(Edge danglingEdge : findDanglingEdges){
-//			if(danglingEdge.getType().getName().equals("methods")){
-//				//Do check source and target!
-//				Node sourceNode = danglingEdge.getSource();
-//				String sourceNodeName = sourceNode.getName();
-//				if(sourceNodeName.equals("11"))
-//					methodsEdgeDetected = true;
-//			}
-//			if(danglingEdge.getType().getName().equals("type")){
-//				Node targetNode = danglingEdge.getTarget();
-//				String targetNodeName = targetNode.getName();
-//				if(targetNodeName.equals("16"))
-//					typeEdgeDetected = true;
-//			}
-//		}
-//		
-//		assertEquals(true, methodsEdgeDetected);
-//		assertEquals(true, typeEdgeDetected);
 	}
 }

@@ -14,10 +14,7 @@ import org.eclipse.emf.henshin.model.Node;
 import org.eclipse.emf.henshin.model.Rule;
 import org.eclipse.emf.henshin.model.Unit;
 import org.eclipse.emf.henshin.model.resource.HenshinResourceSet;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ComputeConflictAtomsTest {
@@ -27,44 +24,45 @@ public class ComputeConflictAtomsTest {
 
 	Rule decapsulateAttributeRule;
 	Rule pullUpEncapsulatedAttributeRule;
-	
-	
+
 	@Before
 	public void setUp() throws Exception {
 		HenshinResourceSet resourceSet = new HenshinResourceSet(PATH);
 		Module module = resourceSet.getModule(henshinFileName, false);
-		
-		for(Unit unit : module.getUnits()){
-			if(unit.getName().equals("decapsulateAttribute"))
+
+		for (Unit unit : module.getUnits()) {
+			if (unit.getName().equals("decapsulateAttribute"))
 				decapsulateAttributeRule = (Rule) unit;
-			if(unit.getName().equals("pullUpEncapsulatedAttribute"))
+			if (unit.getName().equals("pullUpEncapsulatedAttribute"))
 				pullUpEncapsulatedAttributeRule = (Rule) unit;
 		}
 	}
 
-
 	@Test
 	public void computeConflictAtomsTest() {
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<ConflictAtom> computedConflictAtoms = atomicCoreCPA.computeConflictAtoms(decapsulateAttributeRule, pullUpEncapsulatedAttributeRule);
-//		assertEquals(3, computedConflictAtoms.size());
-		
-		Bisherige Erkenntnis: es werden bisher zwei ConflictAtoms erkannt mit jeweils "Method" im OverlapGraph.
-		-> Wieso wird "Parameter" nicht als Conflict Atom erkannt?
-				- erste Erkenntnis: Im Test "ComputeCandidates" werden Method(4x) und Parameter(1x) gefunden.
-				- Die Ausgabe von "ComputeMinReasonsTest" legt nahe, dass die 
-		-> Entsprechend prüfen, dass es sich bei den bei den Methods um 2:13 und 3:14 handelt.
-		-> Wieso haben die Knoten im OverlapGraph keine Namen anstelle von "2_13" und "3_14"
-		
-		for(ConflictAtom conflictAtom : computedConflictAtoms){
+		List<ConflictAtom> computedConflictAtoms = atomicCoreCPA.computeConflictAtoms(decapsulateAttributeRule,
+				pullUpEncapsulatedAttributeRule);
+		assertEquals(3, computedConflictAtoms.size());
+
+		int numberOf_METHOD_atoms = 0;
+		int numberOf_PARAMETER_atoms = 0;
+		for (ConflictAtom conflictAtom : computedConflictAtoms) {
 			Span span = conflictAtom.getSpan();
 			Graph graph = span.getGraph();
 			EList<Node> nodes = graph.getNodes();
-			System.out.println("number of nodes: "+nodes.size());
-			for(Node nodeInOverlapGraph : nodes){
-				System.out.println("Name of nodes: " +nodeInOverlapGraph.getName());
+			for (Node nodeInOverlapGraph : nodes) {
+				if (nodeInOverlapGraph.getType().getName().equals("Method")) {
+					numberOf_METHOD_atoms++;
+				} else if (nodeInOverlapGraph.getType().getName().equals("Parameter")) {
+					numberOf_PARAMETER_atoms++;
+				} else {
+					assertTrue("node of wrong type in overlap graph", false);
+				}
 			}
 		}
+		assertEquals(2, numberOf_METHOD_atoms);
+		assertEquals(1, numberOf_PARAMETER_atoms);
 	}
 
 }

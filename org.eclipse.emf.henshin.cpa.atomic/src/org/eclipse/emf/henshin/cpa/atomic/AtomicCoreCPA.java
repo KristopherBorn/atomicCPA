@@ -1,9 +1,11 @@
 package org.eclipse.emf.henshin.cpa.atomic;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EClass;
@@ -40,9 +42,9 @@ public class AtomicCoreCPA {
 		List<ConflictAtom> result = new LinkedList<ConflictAtom>();
 		List<Span> candidates = computeCandidates(rule1, rule2);
 		for(Span candidate : candidates){
-			List<Span> reasons = new LinkedList<>();//
+			Set<Span> reasons = new HashSet<>();//
 			computeMinReasons(rule1, rule2, candidate, reasons);
-			if(reasons.isEmpty()){
+			if(!reasons.isEmpty()){
 				result.add(new ConflictAtom(candidate, reasons));
 				//TODO: wieso ein Atom die "reasons" benötigt ist mir noch unklar.
 				// Bzw.was die Datenstruktur "Atom" überhaupt umfasst.
@@ -138,13 +140,13 @@ public class AtomicCoreCPA {
 		return result;
 	}
 	
-	public void computeMinReasons(Rule rule1, Rule rule2, Span s1, List<Span> reasons) {
+	public void computeMinReasons(Rule rule1, Rule rule2, Span s1, Set<Span> reasons) {
 		if(isMinReason(rule1, rule2, s1)){
 			reasons.add(s1);
 			return;
 		}
 		// is this part of the backtracking?
-		List<Span> extendedSpans = findExtensions(rule1, rule2, s1, reasons);
+		Set<Span> extendedSpans = findExtensions(rule1, rule2, s1, reasons);
 		for(Span extendedSpan : extendedSpans){
 			computeMinReasons(rule1, rule2, extendedSpan, reasons);
 		}		
@@ -157,7 +159,6 @@ public class AtomicCoreCPA {
 		//TODO: wofür wird G benötigt? Vermutlich nur als Ziel der matches, oder?
 		// 		Oder ist das nicht normalerweise das minimale Modell?
 		boolean isMatchM1 = findDanglingEdges(rule1, pushoutResult.getMappingsOfRule1()).isEmpty(); //TODO: über den jeweiligen match sollte doch die Regel auch "erreichbar" sein. Regel als Parameter daher überflüssig.
-		// TODO: wie "findDanglingEdges" funktioniert weiß ich noch nicht!
 		boolean isMatchM2 = findDanglingEdges(rule2, pushoutResult.getMappingsOfRule2()).isEmpty();
 		return (isMatchM1 && isMatchM2);
 	}
@@ -183,7 +184,7 @@ public class AtomicCoreCPA {
 		return pushoutResult;
 	}
 
-	private List<Span> findExtensions(Rule rule1, Rule rule2, Span s1, List<Span> reasons) {
+	private Set<Span> findExtensions(Rule rule1, Rule rule2, Span s1, Set<Span> reasons) {
 		// TODO: bei "isMinReason" wird ebensfalls der Pushout gebildet. 
 		// Was ist hier der Unterschied, bzw. es sollte vermieden werden, 
 		// dass zweimal die gleichen Pushouts gebildet werden/existieren.
@@ -218,11 +219,11 @@ public class AtomicCoreCPA {
 				//		so soll die Suche nach Erweiterungen abgebrochen werden?
 				//		Überlegung: was ist überhaupt das Ziel? -> Wenn dangling-edges auftreten,
 				//			dann ist es nur eine extension wenn es für diese auch Lösungen gibt.
-				return new LinkedList<Span>();// oder NULL?
+				return new HashSet<Span>();// oder NULL?
 			}
 			// Frage: Was genau ist das, die disjointCombinations?
 		}		
-		List<Span> disjointCombinations = enumerateDisjointCombinations(s1, fixingEdges);
+		Set<Span> disjointCombinations = enumerateDisjointCombinations(s1, fixingEdges);
 		return disjointCombinations;
 	}
 
@@ -353,8 +354,8 @@ public class AtomicCoreCPA {
 
 
 	// TODO: bisher nicht weiter spezifiziert!
-	public List<Span> enumerateDisjointCombinations(Span s1, List<Edge> fixingEdges) {
-		List<Span> disjointCombinations = new LinkedList<Span>();
+	public Set<Span> enumerateDisjointCombinations(Span s1, List<Edge> fixingEdges) {
+		Set<Span> disjointCombinations = new HashSet<Span>(); //LinkedList<Span>();
 //		Für jede Kante in fixingEdges wird ein neuer Span erzeugt und dieser um die jeweilige Kante vergrößert.
 		for(Edge fixingEdge : fixingEdges){
 //			Dabei müssen auch entsprechend neue Mappings erzeugt werden!
@@ -429,7 +430,11 @@ public class AtomicCoreCPA {
 						// origin Knoten des mappings sollte schon durch die Verarbeitung von Regel 1 erzeugt worden sein.
 					Mapping newMappingForFixingEdgeinRule2 = henshinFactory.createMapping(newNodeInGraph, fixingEdgeInRule2.getTarget());
 					newSpan.mappingsInRule2.add(newMappingForFixingEdgeinRule2);
+						if(disjointCombinations.contains(newSpan)) //TODO: "Messung" bezüglich equals(..)-Methode wieder entfernen.
+							System.err.println("newSpan is equal to allready existing one");
+						int sizeBefore = disjointCombinations.size();
 					disjointCombinations.add(newSpan);
+						System.err.println("number of disjoint spans - before: "+sizeBefore +" after: "+disjointCombinations.size()); //TODO: "Messung" bezüglich equals(..)-Methode wieder entfernen.
 				}
 				// mehr als eine fixing edge vorhanden. Für jede muss ein neuer Span angelegt werden.				
 				else{
@@ -441,7 +446,11 @@ public class AtomicCoreCPA {
 						Edge fixingEdgeInRule2 = potentialUsageEdgeOfFixingEdgeInRule2;
 						Mapping newMappingForFixingEdgeinRule2 = henshinFactory.createMapping(newNodeDueToTargetNodeInGraph, fixingEdgeInRule2.getTarget());
 						newSpanPerUsageEdge.mappingsInRule2.add(newMappingForFixingEdgeinRule2);
+							if(disjointCombinations.contains(newSpan)) //TODO: "Messung" bezüglich equals(..)-Methode wieder entfernen.
+								System.err.println("newSpan is equal to allready existing one");
+							int sizeBefore = disjointCombinations.size();
 						disjointCombinations.add(newSpanPerUsageEdge);
+							System.err.println("number of disjoint spans - before: "+sizeBefore +" after: "+disjointCombinations.size()); //TODO: "Messung" bezüglich equals(..)-Methode wieder entfernen.
 					}
 				}
 			}
@@ -468,7 +477,11 @@ public class AtomicCoreCPA {
 						// origin Knoten des mappings sollte schon durch die Verarbeitung von Regel 1 erzeugt worden sein.
 					Mapping newMappingForFixingEdgeinRule2 = henshinFactory.createMapping(newNodeInGraph, fixingEdgeInRule2.getSource());
 					newSpan.mappingsInRule2.add(newMappingForFixingEdgeinRule2);
+						if(disjointCombinations.contains(newSpan)) //TODO: "Messung" bezüglich equals(..)-Methode wieder entfernen.
+							System.err.println("newSpan is equal to allready existing one");
+						int sizeBefore = disjointCombinations.size();
 					disjointCombinations.add(newSpan);
+						System.err.println("number of disjoint spans - before: "+sizeBefore +" after: "+disjointCombinations.size()); //TODO: "Messung" bezüglich equals(..)-Methode wieder entfernen.
 				}
 				// mehr als eine fixing edge vorhanden. Für jede muss ein neuer Span angelegt werden.				
 				else{
@@ -480,7 +493,11 @@ public class AtomicCoreCPA {
 						Edge fixingEdgeInRule2 = potentialUsageEdgeOfFixingEdgeInRule2;
 						Mapping newMappingForFixingEdgeinRule2 = henshinFactory.createMapping(newNodeDueToSourceNodeInGraph, fixingEdgeInRule2.getSource());
 						newSpanPerUsageEdge.mappingsInRule2.add(newMappingForFixingEdgeinRule2);
+							if(disjointCombinations.contains(newSpan)) //TODO: "Messung" bezüglich equals(..)-Methode wieder entfernen.
+								System.err.println("newSpan is equal to allready existing one");
+							int sizeBefore = disjointCombinations.size();
 						disjointCombinations.add(newSpanPerUsageEdge);
+							System.err.println("number of disjoint spans - before: "+sizeBefore +" after: "+disjointCombinations.size()); //TODO: "Messung" bezüglich equals(..)-Methode wieder entfernen.
 					}
 				}
 			}
@@ -633,15 +650,15 @@ public class AtomicCoreCPA {
 		/**
 		 * @return the reasons
 		 */
-		public List<Span> getReasons() {
+		public Set<Span> getReasons() {
 			return reasons;
 		}
 
-		List<Span> reasons;
+		Set<Span> reasons;
 
 		// in Algo Zeile 6 wird ein Atom mit den Parametern candidate und reasons initilisiert.
 		// dennoch ist die Datenstruktur noch nicht klar!
-		public ConflictAtom(Span candidate, List<Span> reasons) {
+		public ConflictAtom(Span candidate, Set<Span> reasons) {
 			this.span = candidate;
 			this.reasons = reasons;
 		}
@@ -674,16 +691,16 @@ public class AtomicCoreCPA {
 		/* (non-Javadoc)
 		 * @see java.lang.Object#hashCode()
 		 */
-//		@Override
-//		public int hashCode() {
-//			final int prime = 31;
-//			int result = 1;
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
 //			result = prime * result + getOuterType().hashCode();
 //			result = prime * result + ((graph == null) ? 0 : graph.hashCode());
-//			result = prime * result + ((mappingsInRule1 == null) ? 0 : mappingsInRule1.hashCode());
+//			result = prime * result + ((mappingsInRule1 == null) ? 0 : mappingsInRule1.hashCode()); // no application due to missing knwoledge on the hashCode of two lists with equal content but different order 
 //			result = prime * result + ((mappingsInRule2 == null) ? 0 : mappingsInRule2.hashCode());
-//			return result;
-//		}
+			return result;
+		}
 
 
 		/* (non-Javadoc)

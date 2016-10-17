@@ -17,10 +17,7 @@ import org.eclipse.emf.henshin.model.Rule;
 import org.eclipse.emf.henshin.model.Unit;
 import org.eclipse.emf.henshin.model.impl.HenshinFactoryImpl;
 import org.eclipse.emf.henshin.model.resource.HenshinResourceSet;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class FindFixingEdgesTest {
@@ -31,87 +28,89 @@ public class FindFixingEdgesTest {
 	Rule decapsulateAttributeRule;
 	Rule pullUpEncapsulatedAttributeRule;
 
-
 	@Before
 	public void setUp() throws Exception {
 		HenshinResourceSet resourceSet = new HenshinResourceSet(PATH);
 		Module module = resourceSet.getModule(henshinFileName, false);
-		
-		for(Unit unit : module.getUnits()){
-			if(unit.getName().equals("decapsulateAttribute"))
+
+		for (Unit unit : module.getUnits()) {
+			if (unit.getName().equals("decapsulateAttribute"))
 				decapsulateAttributeRule = (Rule) unit;
-			if(unit.getName().equals("pullUpEncapsulatedAttribute"))
+			if (unit.getName().equals("pullUpEncapsulatedAttribute"))
 				pullUpEncapsulatedAttributeRule = (Rule) unit;
 		}
 	}
 
-	//involves "findDanglingEdges()" before. This method is already tested in another TestClass test.
+	// involves "findDanglingEdges()" before. This method is already tested in the "FindDanglingEdgesTest" test class.
 	@Test
 	public void findFixingEdges_2_13() {
-		
+
 		Node node2InLhsOfRule1 = decapsulateAttributeRule.getLhs().getNode("2");
 		Node node13InLhsOfRule2 = pullUpEncapsulatedAttributeRule.getLhs().getNode("13");
-		
+
 		HenshinFactory henshinFactory = new HenshinFactoryImpl();
 		Graph graphOfSpan = henshinFactory.createGraph();
 		Node commonNodeOfSpan = henshinFactory.createNode(graphOfSpan, node2InLhsOfRule1.getType(), "2,13");
-		
+
 		Mapping node2InRule1Mapping = henshinFactory.createMapping(commonNodeOfSpan, node2InLhsOfRule1);
 		Mapping node13InRule2Mapping = henshinFactory.createMapping(commonNodeOfSpan, node13InLhsOfRule2);
-		
+
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 		Span span = atomicCoreCPA.newSpan(node2InRule1Mapping, graphOfSpan, node13InRule2Mapping);
-		
-		PushoutResult pushoutResult = atomicCoreCPA.newPushoutResult(decapsulateAttributeRule, span, pullUpEncapsulatedAttributeRule);
-		Graph resultGraph = pushoutResult.getResultGraph();
-		
-		List<Edge> findDanglingEdges = atomicCoreCPA.findDanglingEdges(decapsulateAttributeRule, pushoutResult.getMappingsOfRule1());
-		
+
+		PushoutResult pushoutResult = atomicCoreCPA.newPushoutResult(decapsulateAttributeRule, span,
+				pullUpEncapsulatedAttributeRule);
+
+		List<Edge> findDanglingEdges = atomicCoreCPA.findDanglingEdges(decapsulateAttributeRule,
+				pushoutResult.getMappingsOfRule1());
+
 		assertEquals(2, findDanglingEdges.size());
-		
-		// prüfen, dass es sich um eine Kante von "11:Class" nach "13:Method" handelt und um eine Kante von "13:Method" nach "16:Class".
+
 		boolean methodsEdgeDetected = false;
 		boolean typeEdgeDetected = false;
-		
-		for(Edge danglingEdge : findDanglingEdges){
-			if(danglingEdge.getType().getName().equals("methods")){
-				//Do check source and target!
+
+		for (Edge danglingEdge : findDanglingEdges) {
+			// its expected to get the "methods" edge between from node "11:Class" to node "13:Method"
+			if (danglingEdge.getType().getName().equals("methods")) {
 				Node sourceNode = danglingEdge.getSource();
 				String sourceNodeName = sourceNode.getName();
-				if(sourceNodeName.equals("11"))
+				if (sourceNodeName.equals("11"))
 					methodsEdgeDetected = true;
 			}
-			if(danglingEdge.getType().getName().equals("type")){
+			// its expected to get the "methods" edge between from node "13:Method" to node "16:Class"
+			if (danglingEdge.getType().getName().equals("type")) {
 				Node targetNode = danglingEdge.getTarget();
 				String targetNodeName = targetNode.getName();
-				if(targetNodeName.equals("16"))
+				if (targetNodeName.equals("16"))
 					typeEdgeDetected = true;
 			}
 		}
-		
-		// already assured in another test 
+
+		// already assured in another test
 		assertEquals(true, methodsEdgeDetected);
 		assertEquals(true, typeEdgeDetected);
-		
-		for(Edge danglingEdge : findDanglingEdges){
-			if(danglingEdge.getType().getName().equals("methods")){
-				List<Edge> findFixingEdges = atomicCoreCPA.findFixingEdges(decapsulateAttributeRule, pullUpEncapsulatedAttributeRule, span, danglingEdge, pushoutResult.getMappingsOfRule1(), pushoutResult.getMappingsOfRule2());
-//				TODO: was ist hier zu erwarten???
-//						Dass die "methods"-Kante zwischen "1:Class" und "2:Method" der ersten Regel zurückgegeben wird.
+
+		for (Edge danglingEdge : findDanglingEdges) {
+			if (danglingEdge.getType().getName().equals("methods")) {
+				List<Edge> findFixingEdges = atomicCoreCPA.findFixingEdges(decapsulateAttributeRule,
+						pullUpEncapsulatedAttributeRule, span, danglingEdge, pushoutResult.getMappingsOfRule1(),
+						pushoutResult.getMappingsOfRule2());
+				// its expected to get the "methods" edge between from node "1:Class" to node "2:Method"
 				assertEquals(1, findFixingEdges.size());
 				assertEquals("methods", findFixingEdges.get(0).getType().getName());
 				assertEquals(decapsulateAttributeRule.getLhs(), findFixingEdges.get(0).getGraph());
 			}
-			if(danglingEdge.getType().getName().equals("type")){
-				List<Edge> findFixingEdges = atomicCoreCPA.findFixingEdges(decapsulateAttributeRule, pullUpEncapsulatedAttributeRule, span, danglingEdge, pushoutResult.getMappingsOfRule1(), pushoutResult.getMappingsOfRule2());
-//				TODO: was ist hier zu erwarten???
-//					Dass die "type"-Kante zwischen "2:Method" und "6:Class" der ersten Regel zurückgegeben wird.
+			if (danglingEdge.getType().getName().equals("type")) {
+				List<Edge> findFixingEdges = atomicCoreCPA.findFixingEdges(decapsulateAttributeRule,
+						pullUpEncapsulatedAttributeRule, span, danglingEdge, pushoutResult.getMappingsOfRule1(),
+						pushoutResult.getMappingsOfRule2());
+				// its expected to get the "type" edge between from node "2:Method" to node "6:Class"
 				assertEquals(1, findFixingEdges.size());
 				assertEquals("type", findFixingEdges.get(0).getType().getName());
 				assertEquals(decapsulateAttributeRule.getLhs(), findFixingEdges.get(0).getGraph());
 			}
 		}
-		
+
 	}
 
 }
