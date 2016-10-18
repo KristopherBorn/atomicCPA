@@ -8,11 +8,13 @@ import java.util.List;
 import java.util.Set;
 
 import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EFactory;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.EReference;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.emf.ecore.util.EcoreUtil.Copier;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.PushoutResult;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
@@ -71,7 +73,31 @@ public class AtomicCoreCPA {
 			Action sourceNodeAction = deletionEdge.getSource().getAction();
 			Action targetNodeAction = deletionEdge.getTarget().getAction();
 			if(sourceNodeAction.getType().equals(Action.Type.PRESERVE) && targetNodeAction.getType().equals(Action.Type.PRESERVE)){
-				atomicDeletionElements.add(deletionEdge);
+				//TODO: additional "deletion edge check" due to some unresolved Bug. Edges are loaded with different URIs for their type.
+				Edge image = rule1.getMappings().getImage(deletionEdge, rule1.getRhs());
+				Node sourceNodeLhs = deletionEdge.getSource();
+				Node targetNodeLhs = deletionEdge.getTarget();
+				Node sourceNodeRhs = rule1.getMappings().getImage(sourceNodeLhs, rule1.getRhs());
+				Node targetNodeRhs = rule1.getMappings().getImage(targetNodeLhs, rule1.getRhs());
+				EList<Edge> allOutgoing = sourceNodeRhs.getOutgoing();
+				URI uriOfDeletionEdgeType = EcoreUtil.getURI(deletionEdge.getType());
+				boolean isHoweverAPreserveEdge = false;
+				for(Edge edge : allOutgoing){
+					if(edge.getTarget() == targetNodeRhs){
+						// check same name of URI:
+						URI uriOfPotentialAssociatedEdgeType = EcoreUtil.getURI(edge.getType());
+						if(uriOfDeletionEdgeType.toString().equals(uriOfPotentialAssociatedEdgeType.toString()))
+							isHoweverAPreserveEdge = true;
+					}
+				}
+//				allOutgoing.get(0).getType().eCrossReferences() getEGenericType().equals(allOutgoing.get(1).getType());
+//				EList<Edge> outgoingWithType = sourceNodeRhs.getOutgoing(deletionEdge.getType());
+//				URI outgoing0_uri = EcoreUtil.getURI(allOutgoing.get(0).getType());outgoing0_uri.toString()
+//				URI outgoing1_uri = EcoreUtil.getURI(allOutgoing.get(1).getType());
+//				URI deleteEdge_uri = EcoreUtil.getURI(deletionEdge.getType());
+//				System.out.println("HALT");
+				if(!isHoweverAPreserveEdge)
+					atomicDeletionElements.add(deletionEdge);
 			}
 		}
 		for(ModelElement el1 : atomicDeletionElements){
@@ -430,11 +456,11 @@ public class AtomicCoreCPA {
 						// origin Knoten des mappings sollte schon durch die Verarbeitung von Regel 1 erzeugt worden sein.
 					Mapping newMappingForFixingEdgeinRule2 = henshinFactory.createMapping(newNodeInGraph, fixingEdgeInRule2.getTarget());
 					newSpan.mappingsInRule2.add(newMappingForFixingEdgeinRule2);
-						if(disjointCombinations.contains(newSpan)) //TODO: "Messung" bezüglich equals(..)-Methode wieder entfernen.
-							System.err.println("newSpan is equal to allready existing one");
+//						if(disjointCombinations.contains(newSpan)) //TODO: "Messung" bezüglich equals(..)-Methode wieder entfernen.
+//							System.err.println("newSpan is equal to allready existing one");
 						int sizeBefore = disjointCombinations.size();
 					disjointCombinations.add(newSpan);
-						System.err.println("number of disjoint spans - before: "+sizeBefore +" after: "+disjointCombinations.size()); //TODO: "Messung" bezüglich equals(..)-Methode wieder entfernen.
+//						System.err.println("number of disjoint spans - before: "+sizeBefore +" after: "+disjointCombinations.size()); //TODO: "Messung" bezüglich equals(..)-Methode wieder entfernen.
 				}
 				// mehr als eine fixing edge vorhanden. Für jede muss ein neuer Span angelegt werden.				
 				else{
@@ -446,11 +472,11 @@ public class AtomicCoreCPA {
 						Edge fixingEdgeInRule2 = potentialUsageEdgeOfFixingEdgeInRule2;
 						Mapping newMappingForFixingEdgeinRule2 = henshinFactory.createMapping(newNodeDueToTargetNodeInGraph, fixingEdgeInRule2.getTarget());
 						newSpanPerUsageEdge.mappingsInRule2.add(newMappingForFixingEdgeinRule2);
-							if(disjointCombinations.contains(newSpan)) //TODO: "Messung" bezüglich equals(..)-Methode wieder entfernen.
-								System.err.println("newSpan is equal to allready existing one");
+//							if(disjointCombinations.contains(newSpan)) //TODO: "Messung" bezüglich equals(..)-Methode wieder entfernen.
+//								System.err.println("newSpan is equal to allready existing one");
 							int sizeBefore = disjointCombinations.size();
 						disjointCombinations.add(newSpanPerUsageEdge);
-							System.err.println("number of disjoint spans - before: "+sizeBefore +" after: "+disjointCombinations.size()); //TODO: "Messung" bezüglich equals(..)-Methode wieder entfernen.
+//							System.err.println("number of disjoint spans - before: "+sizeBefore +" after: "+disjointCombinations.size()); //TODO: "Messung" bezüglich equals(..)-Methode wieder entfernen.
 					}
 				}
 			}
@@ -978,43 +1004,48 @@ public class AtomicCoreCPA {
 						// get associated node and mapping in both copies
 					Mapping mappingInRule1 = s1.getMappingInRule1(node); //TODO: deal with NPE!!!
 					Mapping mappingInRule2 = s1.getMappingInRule2(node); //TODO: deal with NPE!!!
-					//identify node in copy of rule1
-					Node nodeInL1 = mappingInRule1.getImage();//TODO: deal with NPE!!!
-					Mapping mappingFromL1ToOverlapGraph = getMappingOfOrigin(mappingsOfRule1, nodeInL1);
-					Node nodeOfL1PartOfOverlap = mappingFromL1ToOverlapGraph.getImage();
-					//identify node in copy of rule2
-					Node nodeInL2 = mappingInRule2.getImage();//TODO: deal with NPE!!!
-					Mapping mappingFromL2ToOverlapGraph = getMappingOfOrigin(mappingsOfRule2, nodeInL2);
-					Node nodeOfL2PartOfOverlap = mappingFromL2ToOverlapGraph.getImage();
-					// alle Kanten von nodeInL2 auf nodeInL1 umhängen
-					//TODO: replace by improved version based on:
-					// http://stackoverflow.com/questions/18448671/how-to-avoid-concurrentmodificationexception-while-removing-elements-from-arr
-					List<Edge> incomingEdgesInL2 = new LinkedList<Edge>();
-					for(Edge incomingEdge : nodeOfL2PartOfOverlap.getIncoming()){
-						incomingEdgesInL2.add(incomingEdge);
+					if(mappingInRule1 == null || mappingInRule2 == null){
+						System.out.println("which node is it?");
 					}
-					for(Edge incomingEdge : incomingEdgesInL2){
-						incomingEdge.setTarget(nodeOfL1PartOfOverlap);
+					if(mappingInRule1 != null && mappingInRule2 != null){
+						//identify node in copy of rule1
+						Node nodeInL1 = mappingInRule1.getImage();//TODO: deal with NPE!!!
+						Mapping mappingFromL1ToOverlapGraph = getMappingOfOrigin(mappingsOfRule1, nodeInL1);
+						Node nodeOfL1PartOfOverlap = mappingFromL1ToOverlapGraph.getImage();
+						//identify node in copy of rule2
+						Node nodeInL2 = mappingInRule2.getImage();//TODO: deal with NPE!!!
+						Mapping mappingFromL2ToOverlapGraph = getMappingOfOrigin(mappingsOfRule2, nodeInL2);
+						Node nodeOfL2PartOfOverlap = mappingFromL2ToOverlapGraph.getImage();
+						// alle Kanten von nodeInL2 auf nodeInL1 umhängen
+						//TODO: replace by improved version based on:
+						// http://stackoverflow.com/questions/18448671/how-to-avoid-concurrentmodificationexception-while-removing-elements-from-arr
+						List<Edge> incomingEdgesInL2 = new LinkedList<Edge>();
+						for(Edge incomingEdge : nodeOfL2PartOfOverlap.getIncoming()){
+							incomingEdgesInL2.add(incomingEdge);
+						}
+						for(Edge incomingEdge : incomingEdgesInL2){
+							incomingEdge.setTarget(nodeOfL1PartOfOverlap);
+						}
+	
+						List<Edge> outgoingEdgesOfL2 = new LinkedList<Edge>();
+						for(Edge outgoingEdge : nodeOfL2PartOfOverlap.getOutgoing()){
+							outgoingEdgesOfL2.add(outgoingEdge);
+						}
+						for(Edge outgoingEdge : outgoingEdgesOfL2){
+							outgoingEdge.setSource(nodeOfL1PartOfOverlap);
+						}					
+						//mappingFromOverlapGraphToL2 anpassen - nodeInL1 als neues "image" setzen.
+						mappingFromL2ToOverlapGraph.setImage(nodeOfL1PartOfOverlap);
+						//prüfen, dass Knoten "nodeInL2" keine ein- oder ausgehenden KAnten mehr hat.
+						if(nodeOfL2PartOfOverlap.getAllEdges().size() > 0){
+							System.err.println("All Edges of should have been removed, but still "+nodeInL2.getAllEdges().size()+" are remaining!");
+						}
+						//löschen des Knoten "nodeInL2y"
+						Graph graphOfNodeL2 = nodeOfL2PartOfOverlap.getGraph();
+						boolean equalGraph = (copyOfLhsOfRule2 == graphOfNodeL2);
+						boolean removedNode = graphOfNodeL2.removeNode(nodeOfL2PartOfOverlap);
+						System.out.println("removedNode: "+removedNode);
 					}
-
-					List<Edge> outgoingEdgesOfL2 = new LinkedList<Edge>();
-					for(Edge outgoingEdge : nodeOfL2PartOfOverlap.getOutgoing()){
-						outgoingEdgesOfL2.add(outgoingEdge);
-					}
-					for(Edge outgoingEdge : outgoingEdgesOfL2){
-						outgoingEdge.setSource(nodeOfL1PartOfOverlap);
-					}					
-					//mappingFromOverlapGraphToL2 anpassen - nodeInL1 als neues "image" setzen.
-					mappingFromL2ToOverlapGraph.setImage(nodeOfL1PartOfOverlap);
-					//prüfen, dass Knoten "nodeInL2" keine ein- oder ausgehenden KAnten mehr hat.
-					if(nodeOfL2PartOfOverlap.getAllEdges().size() > 0){
-						System.err.println("All Edges of should have been removed, but still "+nodeInL2.getAllEdges().size()+" are remaining!");
-					}
-					//löschen des Knoten "nodeInL2y"
-					Graph graphOfNodeL2 = nodeOfL2PartOfOverlap.getGraph();
-					boolean equalGraph = (copyOfLhsOfRule2 == graphOfNodeL2);
-					boolean removedNode = graphOfNodeL2.removeNode(nodeOfL2PartOfOverlap);
-					System.out.println("removedNode: "+removedNode);
 				}
 				// move all edges and nodes from copyOfLhsOfRule2 to copyOfLhsOfRule1
 //				Iterator<Node> iter = copyOfLhsOfRule2.getNodes().iterator();
