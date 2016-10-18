@@ -64,8 +64,8 @@ public class Logger {
 		if(columnPosition == null){
 			columnPosition = columnPositionOfRule.size()+1;
 			columnPositionOfRule.put(rule2, columnPosition);
-			runtimeResults[0][columnPosition] = rule1.getName();
-			numberOfDeleteUseconflicts[0][columnPosition] = rule1.getName();
+			runtimeResults[0][columnPosition] = rule2.getName();
+			numberOfDeleteUseconflicts[0][columnPosition] = rule2.getName();
 		}
 		runtimeResults[rowPosition][columnPosition] = runtime;
 		numberOfDeleteUseconflicts[rowPosition][columnPosition] = results;
