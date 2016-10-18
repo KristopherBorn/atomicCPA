@@ -5,15 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.core.resources.IFolder;
-import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.IResourceVisitor;
-import org.eclipse.core.resources.IWorkspaceRoot;
-import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.core.runtime.CoreException;
-import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
 import org.eclipse.emf.ecore.xmi.impl.EcoreResourceFactoryImpl;
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
@@ -38,13 +30,10 @@ public class Runner {
 	
 	private List<String> pathsToHenshinFiles;
 	
-	private List<String> deactivatedRules;// = new LinkedList<String>();
+	private List<String> deactivatedRules;
 
 
 	public void run() {
-		
-		
-//		ArchitectureCRAPackage.eINSTANCE.eClass();
 		
 		FeatureModelPackage.eINSTANCE.eClass();
 
@@ -52,11 +41,6 @@ public class Runner {
 	    Map<String, Object> m = reg.getExtensionToFactoryMap();
 	    m.put("xmi", new XMIResourceFactoryImpl());
 	    
-		
-		ResourceSet resSet = new ResourceSetImpl();
-		
-		
-
 		ResourceSetImpl resourceSet = new ResourceSetImpl();
 		
 		resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put("ecore", 
@@ -75,14 +59,9 @@ public class Runner {
 		deactivatedRules.add("deleteGroup_IN_FeatureModel");
 		deactivatedRules.add("removeFromGroup_features_Feature");
 		deactivatedRules.add("PushDownGroup");
-		 
 		
+		Logger logger = new Logger();
 		
-		
-		
-		
-		// TODO Auto-generated method stub
-		Package package1 = this.getClass().getPackage();
 		
 		final File f = new File(Runner.class.getProtectionDomain().getCodeSource().getLocation().getPath());
 		
@@ -94,7 +73,6 @@ public class Runner {
 //		 String projectPath = shortendPath1.replaceAll("org.eclipse.emf.henshin.cpa.atomic", "");
 //		String shortendPath = filePath.replaceAll("bin", "");
 		
-//		filePath.replaceAll(regex, replacement)
 		
 		System.out.println(projectPath);
 		
@@ -115,7 +93,7 @@ public class Runner {
 				HenshinResourceSet henshinResourceSet = new HenshinResourceSet();
 				Module module = henshinResourceSet.getModule(pathToHenshinFiles);
 				for (Unit unit : module.getUnits()) {
-					if (unit instanceof Rule /*&& numberOfAddedRules<1*/) {
+					if (unit instanceof Rule /*&& numberOfAddedRules<10*/) {
 //						rulesAndAssociatedFileNames.put((Rule) unit, fileName);
 						boolean deactivatedRule = false;
 						for(String deactivatedRuleName : deactivatedRules){							
@@ -130,57 +108,130 @@ public class Runner {
 				}
 		  }
 		  
-		System.out.println("HALT");
+//		System.out.println("HALT");
 		
+		
+		logger.init(numberOfAddedRules);
 		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 		
-//		Rule singleRule = allEditRulesWithoutAmalgamation.get(0);
-//		List<ConflictAtom> singleComputedConflictAtoms = atomicCoreCPA.computeConflictAtoms(singleRule, singleRule);	
-//		System.out.println("amount of Results: "+singleComputedConflictAtoms.size());
-		
-		
+		// options to turn on and off different analyses
+		boolean runClassicCPA = true;
+		boolean runEssentialCPA = true;
 		boolean runAtomicAnalysis = true;
-		if(runAtomicAnalysis){
-			List<String> shortResults = new LinkedList<String>();
-			int numberOfAnalysis = 0;
-			int numberOfConflictsOverall = 0;
+		logger.setAnalysisKinds(runClassicCPA, runEssentialCPA, runAtomicAnalysis);
+		
+		// essential CPA setup
+		ICriticalPairAnalysis essentialCpa = new CpaByAGG();
+		CPAOptions essentialOptions = new CPAOptions();
+		essentialOptions.setEssential(true);
+		
+		// classic CPA setup
+		//TODO!!!
+		
 			for(Rule firstRule : allEditRulesWithoutAmalgamation){
-//				if(firstRule.getName().contains("deleteGroup_IN_FeatureModel")){
 					for(Rule secondRule : allEditRulesWithoutAmalgamation){	
-						String ruleCombination = firstRule.getName()+" -> "+secondRule.getName();
-						System.out.println("start combination: "+ruleCombination);
-						long startTime = System.currentTimeMillis();
-						List<ConflictAtom> computeConflictAtoms = atomicCoreCPA.computeConflictAtoms(firstRule, secondRule);	
-						long endTime = System.currentTimeMillis();
-						long runTime = startTime-endTime;
-						System.out.println("executed: "+ruleCombination+" del-use-confl: "+computeConflictAtoms.size()+" in "+runTime+" ms");
-						numberOfAnalysis++;
-						System.err.println("number of analyses: "+numberOfAnalysis);
-						shortResults.add(computeConflictAtoms.size()+" conflicts in "+ruleCombination);
-						numberOfConflictsOverall += computeConflictAtoms.size();
-					}
+						
+						StringBuffer runTimesOfRuleCombination = new StringBuffer();
+						StringBuffer amountOfDeleteUseConflictsOfRulecombination = new StringBuffer();
+						
+						
+						if(runClassicCPA){
+							runTimesOfRuleCombination.append("?");
+							runTimesOfRuleCombination.append("/");
+							
+							amountOfDeleteUseConflictsOfRulecombination.append("?");
+							amountOfDeleteUseConflictsOfRulecombination.append("/");
+						}
+						
+						
+						if(runEssentialCPA){
+							long essentialStartTime = System.currentTimeMillis();
+							CPAResult essentialResult = null;
+							try {
+								List<Rule> firstRuleList = new LinkedList<Rule>();
+								firstRuleList.add(firstRule);
+								List<Rule> secondRuleList = new LinkedList<Rule>();
+								secondRuleList.add(secondRule);
+								essentialCpa.init(firstRuleList, secondRuleList, essentialOptions);
+								essentialStartTime = System.currentTimeMillis();
+								essentialResult = essentialCpa.runConflictAnalysis();
+							} catch (UnsupportedRuleException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							long essentialEndTime = System.currentTimeMillis();
+							long essentialRunTime = essentialEndTime-essentialStartTime;
+							
+							runTimesOfRuleCombination.append(String.valueOf(essentialRunTime));
+							runTimesOfRuleCombination.append("/");
+							
+							if(essentialResult != null){
+								List<CriticalPair> filteredDeleteUseConflicts = filterDeleteUseConflicts(essentialResult);
+								System.err.println("delete-use-conflicts: "+filteredDeleteUseConflicts.size());
+	//							System.out.println("complete runtime: "+completeRunTime);
+	
+								amountOfDeleteUseConflictsOfRulecombination.append(String.valueOf(filteredDeleteUseConflicts.size()));
+								amountOfDeleteUseConflictsOfRulecombination.append("/");
+							}else {
+								amountOfDeleteUseConflictsOfRulecombination.append("-");
+								amountOfDeleteUseConflictsOfRulecombination.append("/");
+							}
+						}
+						
+						
+						if(runAtomicAnalysis){
+//							List<String> shortResults = new LinkedList<String>();
+							int numberOfAnalysis = 0;
+							int numberOfConflictsOverall = 0;
+							String ruleCombination = firstRule.getName()+" -> "+secondRule.getName();
+							System.out.println("start combination: "+ruleCombination);
+							long atomicStartTime = System.currentTimeMillis();
+							List<ConflictAtom> computeConflictAtoms = atomicCoreCPA.computeConflictAtoms(firstRule, secondRule);	
+							long atomicEndTime = System.currentTimeMillis();
+							long atomiRunTime = atomicEndTime-atomicStartTime;
+
+							runTimesOfRuleCombination.append(String.valueOf(atomiRunTime));
+							
+							System.out.println("executed: "+ruleCombination+" del-use-confl: "+computeConflictAtoms.size()+" in "+atomiRunTime+" ms");
+							numberOfAnalysis++;
+							System.err.println("number of analysis: "+numberOfAnalysis);
+//							shortResults.add(computeConflictAtoms.size()+" conflicts in "+ruleCombination);
+							numberOfConflictsOverall += computeConflictAtoms.size();
+
+							amountOfDeleteUseConflictsOfRulecombination.append(String.valueOf(computeConflictAtoms.size()));
+						}
+
+						logger.addData(firstRule, secondRule, runTimesOfRuleCombination.toString(), amountOfDeleteUseConflictsOfRulecombination.toString());
+					
 //				}
 			}
-			for (String shortResultString : shortResults) {			
-				System.out.println(shortResultString);
-			}
-			System.out.println("number of conflicts overall: "+numberOfConflictsOverall);
+
+//			long completeEndTime = System.currentTimeMillis();
+//			long completeRunTime = completeEndTime-completeStartTime;
+//			for (String shortResultString : shortResults) {			
+//				System.out.println(shortResultString);
+//			}
+//			System.out.println("number of conflicts overall: "+numberOfConflictsOverall);
+//			System.out.println("complete runtime: "+completeRunTime);
 		}
 		
-		boolean runEssentialCPA = false;
 		CPAResult runConflictAnalysis = null;
 		if(runEssentialCPA){
 			ICriticalPairAnalysis cpa = new CpaByAGG();
 			CPAOptions options = new CPAOptions();
 			options.setEssential(true);
+			long completeStartTime = System.currentTimeMillis();
 			try {
 				cpa.init(allEditRulesWithoutAmalgamation, options);
+				completeStartTime = System.currentTimeMillis();
 				runConflictAnalysis = cpa.runConflictAnalysis();
 			} catch (UnsupportedRuleException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			long completeEndTime = System.currentTimeMillis();
+			long completeRunTime = completeEndTime-completeStartTime;
 			if(runConflictAnalysis != null){
 				List<CriticalPair> criticalPairs = runConflictAnalysis.getCriticalPairs();
 				System.out.println("number of essential CPs: "+criticalPairs.size());
@@ -196,8 +247,34 @@ public class Runner {
 			}else {
 				System.err.println("essentail CPA failed!");
 			}
-			
+			System.out.println("complete runtime: "+completeRunTime);
 		}
+
+		logger.exportStoredRuntimeToCSV(projectPath + File.separator);
+		logger.exportStoredConflictsToCSV(projectPath + File.separator);
+	}
+
+
+
+
+	private List<CriticalPair> filterDeleteUseConflicts(CPAResult essentialResult) {
+		//filter delete-use conflicts:
+		if(essentialResult != null){
+			List<CriticalPair> criticalPairs = essentialResult.getCriticalPairs();
+//								System.out.println("number of essential CPs: "+criticalPairs.size());
+			List<CriticalPair> filteredDeleteUseConflicts = new LinkedList<CriticalPair>();
+			for(CriticalPair cp : criticalPairs){
+				if (cp instanceof Conflict) {
+					if(((Conflict)cp).getConflictKind().equals(ConflictKind.DELETE_USE_CONFLICT)){							
+						filteredDeleteUseConflicts.add(cp);
+					}
+				}
+			}
+			return filteredDeleteUseConflicts;
+		}else {
+//								System.err.println("essentail CPA failed!");
+		}
+		return new LinkedList<CriticalPair>();
 	}
 
 
@@ -211,14 +288,10 @@ public class Runner {
 		    	String fileName = child.getName();
 		    	if(fileName.endsWith(".henshin")){
 		    		pathsToHenshinFiles.add(child.getAbsolutePath());
-//		    		addHenshinFile(child.getAbsolutePath());
 		    	} else if (!child.getName().contains(".")) {
 		    		File subDir = child;
 		    		inspectDirectoryForHenshinFiles(subDir);
-//					versuchen den Ordner rekursiv zu untersuchen.
-//					TODO: ggf. eine Liste "auszuschließender" henshin Regeln anzulegen!
 				}
-		      // Do something with child
 		    }
 		  } else {
 		    // Handle the case where dir is not really a directory.
@@ -231,30 +304,5 @@ public class Runner {
 	
 
 
-	private void addHenshinFile(String absolutePath) {
-//		TODO: henshin files hinzufügen 
-		// TODO Auto-generated method stub
-		
-	}
 
-
-
-
-	class MyResourceVisitor implements IResourceVisitor{
-
-		@Override
-		public boolean visit(IResource resource) { 
-		if (!(resource.getType() == IResource.FILE)) 
-			return true; 
-		if (resource.getName().endsWith(".java"))
-			System.out.println("process Java file");
-	//			processJavaFile((IFile)resource);
-		if (resource instanceof IFolder) {
-			System.out.println("folder detected: "+resource.getName());
-			
-		}
-		return true; 
-		} 
-		
-	}
 }
