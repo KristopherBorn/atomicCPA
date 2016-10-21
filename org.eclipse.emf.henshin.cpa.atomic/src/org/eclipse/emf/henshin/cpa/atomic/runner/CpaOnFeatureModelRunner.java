@@ -1,99 +1,63 @@
 package org.eclipse.emf.henshin.cpa.atomic.runner;
 
 import java.io.File;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
-import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.IResourceVisitor;
-import org.eclipse.core.resources.IWorkspace;
-import org.eclipse.core.resources.IWorkspaceRoot;
-import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.Path;
-import org.eclipse.emf.henshin.interpreter.Engine;
-import org.eclipse.emf.henshin.model.Module;
-import org.eclipse.emf.henshin.model.resource.HenshinResourceSet;
+import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
+import org.eclipse.emf.ecore.xmi.impl.EcoreResourceFactoryImpl;
+import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
+import de.imotep.featuremodel.variability.metamodel.FeatureModel.FeatureModelPackage;
 
-public class CpaOnFeatureModelRunner {
+public class CpaOnFeatureModelRunner extends Runner{
 	
 	// Relative path to the transformations.
-	static String TRANSFORMATIONS = "transformations/";
+//	static String TRANSFORMATIONS = "transformations/"; //überflüssig
 	
-	private static Engine engine;// = new EngineImpl();
+//	private static Engine engine;// = new EngineImpl(); //überflüssig
 	
-	private static Module module;
+//	private static Module module; //überflüssig
 	
-	private static HenshinResourceSet henshinResourceSet;
+//	private static HenshinResourceSet henshinResourceSet; // überflüssig
 
 	public static void main(String args[]){
 		System.out.println("test");
 		
+		
+		FeatureModelPackage.eINSTANCE.eClass();
+
+		Resource.Factory.Registry reg = Resource.Factory.Registry.INSTANCE;
+		Map<String, Object> m = reg.getExtensionToFactoryMap();
+		m.put("xmi", new XMIResourceFactoryImpl());
+
+		ResourceSetImpl resourceSet = new ResourceSetImpl();
+
+		resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put("ecore",
+				new EcoreResourceFactoryImpl());
+		
+		List<String> deactivatedRules = new LinkedList<String>();
+//		deactivatedRules.add("Refactoring_1-4"); // bringt ähnlich gute ERgebnisse wie die anderen Refactorings, ist daher also bei Bedarf verzichtbar
+		deactivatedRules.add("Refactoring_1-9"); // most likely DEADLOCK in Atmoic CPA!
+		deactivatedRules.add("deleteGroup_IN_FeatureModel"); // most likely DEADLOCK in Atmoic CPA!
+//		deactivatedRules.add("removeFromGroup_features_Feature"); // bringt auf für essential und atomic halbwegs interessante Ergebnisse
+		deactivatedRules.add("PushDownGroup"); //WICHTIG!: SEHR INTERESSANT FÜR ATOMIC UND ESSENTIAL! LEider nicht mit normaler CPA ausführbar :-/
+		
+		final File f = new File(Runner.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+		String filePath = f.toString();
+		// String shortendPath = filePath.replaceAll("org.eclipse.emf.henshin.cpa.atomic\\bin", "");
+		String projectPath = filePath.replaceAll("bin", "");
+		// String shortendPath0 = filePath.replaceAll("bin", "");
+		// String shortendPath1 = shortendPath0.substring(0, shortendPath0.length()-1);
+		// String projectPath = shortendPath1.replaceAll("org.eclipse.emf.henshin.cpa.atomic", "");
+		// String shortendPath = filePath.replaceAll("bin", "");
+		System.out.println(projectPath);
+		String subDirectoryPath = "testData\\featureModeling\\fmedit_noAmalgamation\\rules\\";
+		String fullSubDirectoryPath = projectPath + subDirectoryPath;
+		
 		Runner runner = new Runner();
-		
-		runner.run();
-		
-		
-		
-		//get object which represents the workspace
-//		IWorkspace workspace = ResourcesPlugin.getWorkspace(); //only possible in running plugins!
-		 
-		//get location of workspace (java.io.File)
-//		File workspaceDirectory = workspace.getRoot().getLocation().toFile();
-		
-		
-//		((IFile) selection).getWorkspace()
-//		IPath path = new Path("");
-//		workspace.getRoot().getFile(path);
-		
-//		IProject prj = ResourcePlugin.getWorkspace().getRoot().getProject("project-name");
-//		IFile theFile = prj.getFile(sourceFolder + packageName.replace('.','/') + className + ".java");
-		
-		
-		
-		//TODO: laden aller Regeln im Unterverzeichnis eines gegeben Pfades.
-		
-		// Create a Henshin resource set:
-//		if(henshinResourceSet == null){			
-//			henshinResourceSet = new HenshinResourceSet();
-//		}
-
-		// ensure module is loaded!
-//		getModule(); //old code trash
-		
-		// ensure units are loaded!
-//		initializeAllUnits();
+		runner.setAnalysisKinds(false, true, false);
+		runner.run(fullSubDirectoryPath, deactivatedRules);
 	}
-	
-
-
-	private static void run() {
-		// TODO Auto-generated method stub
-		
-	}
-
-
-
-	public static Module getModule() {
-		// Load the module:
-		if(module == null){
-			module = henshinResourceSet.getModule(TRANSFORMATIONS+"mutations.henshin", false);
-		}
-		return module;
-	}
-	
-
-
-//	private static void initializeAllUnits() {
-//		if(anyUnitIsUninitialized()){			
-//			moveSelectedFeatureUnit = getModule().getUnit("moveSelectedFeature");
-//			joinSelectedClassesUnit = getModule().getUnit("joinSelectedClasses");
-//			moveOnceReferencedAttrToItsMethodUnit = getModule().getUnit("moveOnceReferencedAttrToItsMethod");
-//			randomSplitClassUnit = getModule().getUnit("randomSplitClass");
-//			moveFeatureUnit = getModule().getUnit("moveFeature");
-//		}
-//	}
-//	
-	
 }

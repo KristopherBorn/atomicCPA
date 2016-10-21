@@ -2,25 +2,15 @@ package org.eclipse.emf.henshin.cpa.atomic;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.URI;
-import org.eclipse.emf.ecore.EClass;
-import org.eclipse.emf.ecore.EFactory;
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.emf.ecore.util.EcoreUtil.Copier;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.PushoutResult;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
-import org.eclipse.emf.henshin.interpreter.EGraph;
-import org.eclipse.emf.henshin.interpreter.Match;
-import org.eclipse.emf.henshin.interpreter.impl.EGraphImpl;
 import org.eclipse.emf.henshin.model.Action;
 import org.eclipse.emf.henshin.model.Edge;
 import org.eclipse.emf.henshin.model.Graph;
@@ -30,22 +20,51 @@ import org.eclipse.emf.henshin.model.ModelElement;
 import org.eclipse.emf.henshin.model.Node;
 import org.eclipse.emf.henshin.model.Rule;
 import org.eclipse.emf.henshin.model.impl.EdgeImpl;
-import org.eclipse.emf.henshin.model.impl.GraphImpl;
 import org.eclipse.emf.henshin.model.impl.HenshinFactoryImpl;
-import org.eclipse.emf.henshin.model.impl.MappingImpl;
-import org.eclipse.emf.henshin.model.impl.NodeImpl;
+
+import de.imotep.featuremodel.variability.metamodel.FeatureModel.FeatureModelPackage;
 
 public class AtomicCoreCPA {
 	
+//	TODO: Felder für Candidates und MinimalReasons einführen - DONE
+	List<Span> candidates;
+	Set<Span> overallReasons;
+//	TODO: Methode zum abrufen dieser einführen - DONE
+//	TODO: in Methode "computeConflictAtoms(...)" die Felder zu beginn zurücksetzen - wird bereits gemacht. - DONE
+	
+	
+	/**
+	 * @return the candidates
+	 */
+	public List<Span> getCandidates() {
+		return candidates;
+	}
+
+
+	/**
+	 * @return the reasons
+	 */
+	public Set<Span> getOverallReasons() {
+		return overallReasons;
+	}
 
 	HenshinFactory henshinFactory = new HenshinFactoryImpl();
 
 	public List<ConflictAtom> computeConflictAtoms(Rule rule1, Rule rule2){
+		
 		List<ConflictAtom> result = new LinkedList<ConflictAtom>();
-		List<Span> candidates = computeCandidates(rule1, rule2);
+		candidates = computeCandidates(rule1, rule2);
+		overallReasons = new HashSet<>();
 		for(Span candidate : candidates){
+			
 			Set<Span> reasons = new HashSet<>();//
-			computeMinReasons(rule1, rule2, candidate, reasons);
+			computeMinReasons(rule1, rule2, candidate, reasons);			
+
+			if(rule1.getName().contains("Feature_FROM_Feature_children_TO_Feature_Fea") && rule2.getName().contains("factoring_1-3")){
+				System.out.println("maybe here begins the mistake!");
+			}
+			
+			overallReasons.addAll(reasons); // to know the total amount after the analysis!
 			if(!reasons.isEmpty()){
 				result.add(new ConflictAtom(candidate, reasons));
 				//TODO: wieso ein Atom die "reasons" benötigt ist mir noch unklar.
@@ -90,6 +109,7 @@ public class AtomicCoreCPA {
 							isHoweverAPreserveEdge = true;
 					}
 				}
+				// try to resolve problems when "FeatureModelPackage.eINSTANCE" wasnt loaded!
 //				allOutgoing.get(0).getType().eCrossReferences() getEGenericType().equals(allOutgoing.get(1).getType());
 //				EList<Edge> outgoingWithType = sourceNodeRhs.getOutgoing(deletionEdge.getType());
 //				URI outgoing0_uri = EcoreUtil.getURI(allOutgoing.get(0).getType());outgoing0_uri.toString()
@@ -185,8 +205,8 @@ public class AtomicCoreCPA {
 		//TODO: wofür wird G benötigt? Vermutlich nur als Ziel der matches, oder?
 		// 		Oder ist das nicht normalerweise das minimale Modell?
 		boolean isMatchM1 = findDanglingEdges(rule1, pushoutResult.getMappingsOfRule1()).isEmpty(); //TODO: über den jeweiligen match sollte doch die Regel auch "erreichbar" sein. Regel als Parameter daher überflüssig.
-		boolean isMatchM2 = findDanglingEdges(rule2, pushoutResult.getMappingsOfRule2()).isEmpty();
-		return (isMatchM1 && isMatchM2);
+//	ÜBERFLÜSSIG nach ERKENNTNIS!	boolean isMatchM2 = findDanglingEdges(rule2, pushoutResult.getMappingsOfRule2()).isEmpty();
+		return (isMatchM1 /*&& isMatchM2*/);
 	}
 
 	// TODO: bisher nicht weiter spezifiziert!
@@ -211,6 +231,11 @@ public class AtomicCoreCPA {
 	}
 
 	private Set<Span> findExtensions(Rule rule1, Rule rule2, Span s1, Set<Span> reasons) {
+		
+		if(rule1.getName().contains("Feature_FROM_Feature_children_TO_Feature_Fea") && rule2.getName().contains("factoring_1-3")){
+			System.out.println("maybe here begins the mistake!");
+		}
+		
 		// TODO: bei "isMinReason" wird ebensfalls der Pushout gebildet. 
 		// Was ist hier der Unterschied, bzw. es sollte vermieden werden, 
 		// dass zweimal die gleichen Pushouts gebildet werden/existieren.
@@ -673,12 +698,13 @@ public class AtomicCoreCPA {
 			return span;
 		}
 
-		/**
-		 * @return the reasons
-		 */
-		public Set<Span> getReasons() {
-			return reasons;
-		}
+		//TODO: remove - ÜBERFLÜSSIG!
+//		/**
+//		 * @return the reasons
+//		 */
+//		public Set<Span> getReasons() {
+//			return reasons;
+//		}
 
 		Set<Span> reasons;
 
@@ -772,6 +798,11 @@ public class AtomicCoreCPA {
 					for(Node nodeInOwnGraph : ownNodes){
 						// get mapping and node in rule1
 						Mapping mappingOfNodeInRule1 = getMappingInRule1(nodeInOwnGraph);
+						if(mappingOfNodeInRule1 == null)
+							return false; //TODO: isnt that a bug instead of an unequal Span?
+							// the nodes of the span should all have a mapping into both rules. 
+							// somehow the nodes in the graph of the span or the nodes in the mapping must bewrong.
+							// it shouldnt be possible to change the graph and the mappings of aspan and everytime they are created they should be checked to be consistent!
 						Node associatedNodeInRule1 = mappingOfNodeInRule1.getImage();
 						// get mapping in otherGraph
 						Mapping mappingOfOtherNodeInRule1 = other.getMappingFromGraphToRule1(associatedNodeInRule1);
@@ -949,9 +980,6 @@ public class AtomicCoreCPA {
 		private List<Mapping> mappingsOfRule1;
 		private List<Mapping> mappingsOfRule2;
 		
-		//überflüssig!
-//		private Mapping mapping1;
-//		private Mapping mapping2;
 
 		public PushoutResult(Rule rule1, Span s1, Rule rule2) {
 

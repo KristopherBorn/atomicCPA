@@ -8,8 +8,8 @@
     <eStructuralFeatures xsi:type="ecore:EReference" name="constraints" upperBound="-1"
         eType="#//Constraint" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="version" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EFloat"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="root" lowerBound="1" eType="#//Feature"
-        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="root" lowerBound="1" upperBound="-1"
+        eType="#//Feature" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="groups" upperBound="-1"
         eType="#//Group" containment="true"/>
   </eClassifiers>
@@ -18,7 +18,7 @@
         iD="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Comment" eSuperTypes="#//NamedElement">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="element" lowerBound="1"
+    <eStructuralFeatures xsi:type="ecore:EReference" name="element" upperBound="-1"
         eType="#//NamedElement"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="text" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
@@ -44,8 +44,8 @@
         eType="#//RequireConstraint" eOpposite="#//RequireConstraint/requiredFeature"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="requireConstraints" upperBound="-1"
         eType="#//RequireConstraint" eOpposite="#//RequireConstraint/feature"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="group" eType="#//Group"
-        eOpposite="#//Group/features"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="group" upperBound="-1"
+        eType="#//Group" eOpposite="#//Group/features"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="excludeConstraintsA" upperBound="-1"
         eType="#//ExcludeConstraint" eOpposite="#//ExcludeConstraint/excludedFeatureA"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="excludeConstraintsB" upperBound="-1"
@@ -53,15 +53,15 @@
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="RequireConstraint" eSuperTypes="#//Constraint">
     <eStructuralFeatures xsi:type="ecore:EReference" name="requiredFeature" lowerBound="1"
-        eType="#//Feature" eOpposite="#//Feature/requiredConstraints"/>
+        upperBound="-1" eType="#//Feature" eOpposite="#//Feature/requiredConstraints"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="feature" lowerBound="1"
-        eType="#//Feature" eOpposite="#//Feature/requireConstraints"/>
+        upperBound="-1" eType="#//Feature" eOpposite="#//Feature/requireConstraints"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="ExcludeConstraint" eSuperTypes="#//Constraint">
     <eStructuralFeatures xsi:type="ecore:EReference" name="excludedFeatureA" lowerBound="1"
-        eType="#//Feature" eOpposite="#//Feature/excludeConstraintsA"/>
+        upperBound="-1" eType="#//Feature" eOpposite="#//Feature/excludeConstraintsA"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="excludedFeatureB" lowerBound="1"
-        eType="#//Feature" eOpposite="#//Feature/excludeConstraintsB"/>
+        upperBound="-1" eType="#//Feature" eOpposite="#//Feature/excludeConstraintsB"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Group" eSuperTypes="#//NamedElement">
     <eStructuralFeatures xsi:type="ecore:EReference" name="features" lowerBound="2"
