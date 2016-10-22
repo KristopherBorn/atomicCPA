@@ -1,4 +1,4 @@
-package org.eclipse.emf.henshin.cpa.atomic.runner;
+package org.eclipse.emf.henshin.cpa.atomic.runner.pullback;
 
 import java.io.File;
 import java.util.LinkedList;
@@ -17,11 +17,11 @@ import org.eclipse.emf.henshin.cpa.ICriticalPairAnalysis;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
-import org.eclipse.emf.henshin.cpa.atomic.compareLogger.CandidatesLogger;
-import org.eclipse.emf.henshin.cpa.atomic.compareLogger.ConflictAtomLogger;
-import org.eclipse.emf.henshin.cpa.atomic.compareLogger.EssentialCpaLogger;
-import org.eclipse.emf.henshin.cpa.atomic.compareLogger.MinimalReasonLogger;
-import org.eclipse.emf.henshin.cpa.atomic.compareLogger.NormalCpaLogger;
+import org.eclipse.emf.henshin.cpa.atomic.runner.AtomicResultKeeper;
+import org.eclipse.emf.henshin.cpa.atomic.runner.CalculateAtomicCpaTask;
+import org.eclipse.emf.henshin.cpa.atomic.runner.CalculateCpaTask;
+import org.eclipse.emf.henshin.cpa.atomic.runner.CalculateEssentialCpaTask;
+import org.eclipse.emf.henshin.cpa.atomic.runner.ResultKeeper;
 import org.eclipse.emf.henshin.cpa.result.CPAResult;
 import org.eclipse.emf.henshin.cpa.result.Conflict;
 import org.eclipse.emf.henshin.cpa.result.ConflictKind;
@@ -42,7 +42,7 @@ import de.bigtrafo.measurement.compactness.RuleSetMetricsCalculator;
 import metrics.RuleMetrics;
 
 
-public class Runner {
+public class Runner_WithPullback {
 
 // options to turn on and off different analyses
 	boolean runNormalCPA = true;
@@ -58,16 +58,16 @@ public class Runner {
 	public void run(String fullSubDirectoryPath, List<String> deactivatedRules) {
 
 //		LoggerPB logger = new LoggerPB();
-		List<Logger> loggers = new LinkedList<>();
-		Logger normalCpaLogger = new NormalCpaLogger();
+		List<LoggerPB> loggers = new LinkedList<>();
+		LoggerPB normalCpaLogger = new NormalCpaLoggerPB();
 		loggers.add(normalCpaLogger);
-		Logger essentialCpaLogger = new EssentialCpaLogger();
+		LoggerPB essentialCpaLogger = new EssentialCpaLoggerPB();
 		loggers.add(essentialCpaLogger);
-		Logger conflictAtomLogger = new ConflictAtomLogger();
+		LoggerPB conflictAtomLogger = new ConflictAtomLoggerPB();
 		loggers.add(conflictAtomLogger);
-		Logger candidatesLogger = new CandidatesLogger();
+		LoggerPB candidatesLogger = new CandidatesLoggerPB();
 		loggers.add(candidatesLogger);
-		Logger minimalReasonLogger = new MinimalReasonLogger();
+		LoggerPB minimalReasonLogger = new MinimalReasonLoggerPB();
 		loggers.add(minimalReasonLogger);
 
 
@@ -114,9 +114,9 @@ public class Runner {
 //		logger.init(numberOfAddedRules);
 //		logger.setAddDetailsOnRuleName(true);
 //		logger.setAnalysisKinds(runNormalCPA, runEssentialCPA, runAtomicAnalysis);
-		for(Logger logger : loggers){
-			logger.init(numberOfAddedRules);
-			logger.setAddDetailsOnRuleName(true);
+		for(LoggerPB loggerPB : loggers){
+			loggerPB.init(numberOfAddedRules);
+			loggerPB.setAddDetailsOnRuleName(true);
 		}
 
 //		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
@@ -186,8 +186,8 @@ public class Runner {
 						int elementsInLhsOfFirstRule = lhsOfFirstRule.getNodes().size() + lhsOfFirstRule.getEdges().size();
 						//TODO: sum up the details!
 //						logger.addData(firstRule, null, Integer.toString(elementsInLhsOfFirstRule),Integer.toString(elementsInLhsOfFirstRule));
-						for(Logger logger : loggers){
-							logger.addData(firstRule, null, Integer.toString(elementsInLhsOfFirstRule),Integer.toString(elementsInLhsOfFirstRule));
+						for(LoggerPB loggerPB : loggers){
+							loggerPB.addData(firstRule, null, Integer.toString(elementsInLhsOfFirstRule),Integer.toString(elementsInLhsOfFirstRule));
 						}
 						boolean ruleMetricAdded = false;
 						
@@ -479,9 +479,9 @@ public class Runner {
 
 
 
-		for(Logger logger : loggers){
-			logger.exportStoredRuntimeToCSV(fullSubDirectoryPath + File.separator);
-			logger.exportStoredConflictsToCSV(fullSubDirectoryPath + File.separator);
+		for(LoggerPB loggerPB : loggers){
+			loggerPB.exportStoredRuntimeToCSV(fullSubDirectoryPath + File.separator);
+			loggerPB.exportStoredConflictsToCSV(fullSubDirectoryPath + File.separator);
 		}
 	}
 	

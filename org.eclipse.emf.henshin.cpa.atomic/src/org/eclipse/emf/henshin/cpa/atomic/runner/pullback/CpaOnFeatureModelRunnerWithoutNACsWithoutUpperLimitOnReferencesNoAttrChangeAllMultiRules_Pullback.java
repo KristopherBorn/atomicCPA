@@ -1,4 +1,4 @@
-package org.eclipse.emf.henshin.cpa.atomic.runner;
+package org.eclipse.emf.henshin.cpa.atomic.runner.pullback;
 
 import java.io.File;
 import java.util.HashSet;
@@ -14,7 +14,7 @@ import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
 
 import de.imotep.featuremodel.variability.metamodel.FeatureModel.FeatureModelPackage;
 
-public class CpaOnFeatureModelRunnerWithoutNACsWithoutUpperLimitOnReferencesNoAttrChangeAllMultiRules extends Runner{
+public class CpaOnFeatureModelRunnerWithoutNACsWithoutUpperLimitOnReferencesNoAttrChangeAllMultiRules_Pullback extends Runner_WithPullback{
 	
 	// Relative path to the transformations.
 //	static String TRANSFORMATIONS = "transformations/"; //überflüssig
@@ -55,7 +55,7 @@ public class CpaOnFeatureModelRunnerWithoutNACsWithoutUpperLimitOnReferencesNoAt
 //		limitedSetOfRulesByRuleNames.add("Generalization_2-1");
 //		limitedSetOfRulesByRuleNames.add("Generalization_2-1_");
 		
-		final File f = new File(Runner.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+		final File f = new File(Runner_WithPullback.class.getProtectionDomain().getCodeSource().getLocation().getPath());
 		String filePath = f.toString();
 
 		String projectPath = filePath.replaceAll("bin", "");
@@ -63,11 +63,11 @@ public class CpaOnFeatureModelRunnerWithoutNACsWithoutUpperLimitOnReferencesNoAt
 		String subDirectoryPath = "testData\\featureModelingWithoutUpperLimitsOnReferences\\fmedit_noNACs_noAttrChange\\rules\\";
 		String fullSubDirectoryPath = projectPath + subDirectoryPath;
 		
-		Runner runner = new Runner();
-		runner.setNoApplicationConditions(true);
-		runner.setNoMultirules(true);
-		runner.setAnalysisKinds(true, true, true);
+		Runner_WithPullback runner_WithPullback = new Runner_WithPullback();
+		runner_WithPullback.setNoApplicationConditions(true);
+		runner_WithPullback.setNoMultirules(true);
+		runner_WithPullback.setAnalysisKinds(true, true, true);
 //		runner.limitSetOfRulesByRuleNames(limitedSetOfRulesByRuleNames);
-		runner.run(fullSubDirectoryPath, deactivatedRules);
+		runner_WithPullback.run(fullSubDirectoryPath, deactivatedRules);
 	}
 }

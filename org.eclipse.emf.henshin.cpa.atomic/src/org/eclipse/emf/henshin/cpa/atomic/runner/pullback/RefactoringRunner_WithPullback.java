@@ -1,4 +1,4 @@
-package org.eclipse.emf.henshin.cpa.atomic.runner;
+package org.eclipse.emf.henshin.cpa.atomic.runner.pullback;
 
 import java.io.File;
 import java.util.LinkedList;
@@ -22,6 +22,11 @@ import org.eclipse.emf.henshin.cpa.atomic.compareLogger.ConflictAtomLogger;
 import org.eclipse.emf.henshin.cpa.atomic.compareLogger.EssentialCpaLogger;
 import org.eclipse.emf.henshin.cpa.atomic.compareLogger.MinimalReasonLogger;
 import org.eclipse.emf.henshin.cpa.atomic.compareLogger.NormalCpaLogger;
+import org.eclipse.emf.henshin.cpa.atomic.runner.AtomicResultKeeper;
+import org.eclipse.emf.henshin.cpa.atomic.runner.CalculateAtomicCpaTask;
+import org.eclipse.emf.henshin.cpa.atomic.runner.CalculateCpaTask;
+import org.eclipse.emf.henshin.cpa.atomic.runner.CalculateEssentialCpaTask;
+import org.eclipse.emf.henshin.cpa.atomic.runner.ResultKeeper;
 import org.eclipse.emf.henshin.cpa.result.CPAResult;
 import org.eclipse.emf.henshin.cpa.result.Conflict;
 import org.eclipse.emf.henshin.cpa.result.ConflictKind;
@@ -42,7 +47,7 @@ import de.bigtrafo.measurement.compactness.RuleSetMetricsCalculator;
 import metrics.RuleMetrics;
 
 
-public class Runner {
+public class RefactoringRunner_WithPullback {
 
 // options to turn on and off different analyses
 	boolean runNormalCPA = true;
@@ -58,17 +63,17 @@ public class Runner {
 	public void run(String fullSubDirectoryPath, List<String> deactivatedRules) {
 
 //		LoggerPB logger = new LoggerPB();
-		List<Logger> loggers = new LinkedList<>();
-		Logger normalCpaLogger = new NormalCpaLogger();
-		loggers.add(normalCpaLogger);
-		Logger essentialCpaLogger = new EssentialCpaLogger();
-		loggers.add(essentialCpaLogger);
-		Logger conflictAtomLogger = new ConflictAtomLogger();
-		loggers.add(conflictAtomLogger);
-		Logger candidatesLogger = new CandidatesLogger();
-		loggers.add(candidatesLogger);
-		Logger minimalReasonLogger = new MinimalReasonLogger();
-		loggers.add(minimalReasonLogger);
+		List<LoggerPB> loggerPBs = new LinkedList<>();
+		LoggerPB normalCpaLogger = new NormalCpaLoggerPB();
+		loggerPBs.add(normalCpaLogger);
+		LoggerPB essentialCpaLogger = new EssentialCpaLoggerPB();
+		loggerPBs.add(essentialCpaLogger);
+		LoggerPB conflictAtomLogger = new ConflictAtomLoggerPB();
+		loggerPBs.add(conflictAtomLogger);
+		LoggerPB candidatesLogger = new CandidatesLoggerPB();
+		loggerPBs.add(candidatesLogger);
+		LoggerPB minimalReasonLogger = new MinimalReasonLoggerPB();
+		loggerPBs.add(minimalReasonLogger);
 
 
 		File dir = new File(fullSubDirectoryPath);
@@ -114,9 +119,9 @@ public class Runner {
 //		logger.init(numberOfAddedRules);
 //		logger.setAddDetailsOnRuleName(true);
 //		logger.setAnalysisKinds(runNormalCPA, runEssentialCPA, runAtomicAnalysis);
-		for(Logger logger : loggers){
-			logger.init(numberOfAddedRules);
-			logger.setAddDetailsOnRuleName(true);
+		for(LoggerPB loggerPB : loggerPBs){
+			loggerPB.init(numberOfAddedRules);
+			loggerPB.setAddDetailsOnRuleName(true);
 		}
 
 //		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
@@ -186,8 +191,8 @@ public class Runner {
 						int elementsInLhsOfFirstRule = lhsOfFirstRule.getNodes().size() + lhsOfFirstRule.getEdges().size();
 						//TODO: sum up the details!
 //						logger.addData(firstRule, null, Integer.toString(elementsInLhsOfFirstRule),Integer.toString(elementsInLhsOfFirstRule));
-						for(Logger logger : loggers){
-							logger.addData(firstRule, null, Integer.toString(elementsInLhsOfFirstRule),Integer.toString(elementsInLhsOfFirstRule));
+						for(LoggerPB loggerPB : loggerPBs){
+							loggerPB.addData(firstRule, null, Integer.toString(elementsInLhsOfFirstRule),Integer.toString(elementsInLhsOfFirstRule));
 						}
 						boolean ruleMetricAdded = false;
 						
@@ -225,20 +230,12 @@ public class Runner {
 										List<Rule> secondRuleList = new LinkedList<Rule>();
 										secondRuleList.add(secondRule);
 										CPAResult normalResult = null;
-										
-//								CriticalPair critPair = normalResult.getCriticalPairs().get(0);
-//								Conflict confl = (Conflict) critPair;
-//								confl.getFirstRule();
-//								confl.getFirstRule();
-//								confl.getMinimalModel();
-//								confl.getMatch1();
-//								confl.getMatch2();
-										
+																			
 //								
 										ResultKeeper resultKeeper = new ResultKeeper(firstRuleList, secondRuleList, normalOptions);
 										ExecutorService executor = Executors.newSingleThreadExecutor();
 										try {
-											executor.submit(new CalculateCpaTask(resultKeeper)).get(2, TimeUnit.SECONDS);
+											executor.submit(new CalculateCpaTask(resultKeeper)).get(15, TimeUnit.MINUTES);
 										} catch (NullPointerException | InterruptedException | ExecutionException e) {
 											System.err.println("Timeout!");
 											executor.shutdown();
@@ -269,6 +266,18 @@ public class Runner {
 											amountOfDeleteUseConflictsOfRulecombination.append(",");
 											
 											totalNumberOfNormalCPs += filteredDeleteUseConflicts.size();
+											
+											get with the pushout here!
+											- verfügbare "matches" untersuchen!!!
+
+//											CriticalPair critPair = normalResult.getCriticalPairs().get(0);
+//											Conflict confl = (Conflict) critPair;
+//											confl.getFirstRule();
+//											confl.getFirstRule();
+//											confl.getMinimalModel();
+//											confl.getMatch1();
+//											confl.getMatch2();
+											
 										} else {											
 											System.err.println("normal CPA failed!");
 
@@ -306,7 +315,7 @@ public class Runner {
 										ResultKeeper resultKeeper = new ResultKeeper(firstRuleList, secondRuleList, essentialOptions);
 										ExecutorService executor = Executors.newSingleThreadExecutor();
 										try {
-											executor.submit(new CalculateEssentialCpaTask(resultKeeper)).get(2, TimeUnit.SECONDS);
+											executor.submit(new CalculateEssentialCpaTask(resultKeeper)).get(15, TimeUnit.MINUTES);
 										} catch (NullPointerException | InterruptedException | ExecutionException e) {
 											System.err.println("Timeout!");
 											executor.shutdown();
@@ -479,9 +488,9 @@ public class Runner {
 
 
 
-		for(Logger logger : loggers){
-			logger.exportStoredRuntimeToCSV(fullSubDirectoryPath + File.separator);
-			logger.exportStoredConflictsToCSV(fullSubDirectoryPath + File.separator);
+		for(LoggerPB loggerPB : loggerPBs){
+			loggerPB.exportStoredRuntimeToCSV(fullSubDirectoryPath + File.separator);
+			loggerPB.exportStoredConflictsToCSV(fullSubDirectoryPath + File.separator);
 		}
 	}
 	
@@ -648,5 +657,21 @@ private boolean ruleIsntLimited(Rule ruleToCheck) {
 	public void limitSetOfRulesByRuleNames(Set<String> limitedSetOfRulesByRuleNames) {
 		this.limitedSetOfRulesByRuleNames = limitedSetOfRulesByRuleNames;
 	}
+
+	//TODO: wieso nicht an der Pullback Datenstruktur die auch für die Atomic CP verwendet wurde orientieren?
+	//r1 <-(m1) G ->(m2) r2
+	private int computePullback(Rule r1, Match m1, Graph G, Match m2, Rule r2) {
+
+		List<Node> temporary = empty
+		List<Node> result = empty
+
+for (Node node : r1.getLhs().getNodes()) {
+     temporary.add(m1.get(node));
+}
+
+for (Node node : r2.getLhs().getNodes()) {
+     if (temporary.contains(m2.get(node)))
+         result.add(node);
+}
 
 }

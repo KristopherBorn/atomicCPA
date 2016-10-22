@@ -106,7 +106,7 @@ public class EnumerateDisjointCombinationsTest {
 				assertEquals(decapsulateAttributeRule.getLhs(), fixingEdgesOfMethodsEdge.get(0).getGraph());
 
 				Set<Span> disjointCombinationsToFixDanglingMethodsEdge = atomicCoreCPA
-						.enumerateDisjointCombinations(span, fixingEdgesOfMethodsEdge);
+						.enumerateExtensions(span, fixingEdgesOfMethodsEdge);
 				assertEquals(1, disjointCombinationsToFixDanglingMethodsEdge.size());
 
 				Span extendedMethodsEdgeSpan = disjointCombinationsToFixDanglingMethodsEdge.iterator().next();
@@ -121,24 +121,24 @@ public class EnumerateDisjointCombinationsTest {
 				Node methodNodeInSpan = methodsEdge.getTarget();
 				// In Rule1: source: 1:Class, target: 2:Method
 				assertEquals(2, extendedMethodsEdgeSpan.getMappingsInRule1().size());
-				Mapping mappingClassInSpanToRule1 = extendedMethodsEdgeSpan.getMappingInRule1(classNodeInSpan);
+				Mapping mappingClassInSpanToRule1 = extendedMethodsEdgeSpan.getMappingIntoRule1(classNodeInSpan);
 				assertNotNull(mappingClassInSpanToRule1);
 				Node classInRule1 = mappingClassInSpanToRule1.getImage();
 				assertNotNull(classInRule1);
 				assertEquals("Class", classInRule1.getType().getName());
-				Mapping mappingMethodInSpanToRule1 = extendedMethodsEdgeSpan.getMappingInRule1(methodNodeInSpan);
+				Mapping mappingMethodInSpanToRule1 = extendedMethodsEdgeSpan.getMappingIntoRule1(methodNodeInSpan);
 				assertNotNull(mappingMethodInSpanToRule1);
 				Node methodInRule1 = mappingMethodInSpanToRule1.getImage();
 				assertNotNull(methodInRule1);
 				assertEquals("Method", methodInRule1.getType().getName());
 				// In Rule2: soure: 11:Class, target 13:Method
 				assertEquals(2, extendedMethodsEdgeSpan.getMappingsInRule2().size());
-				Mapping mappingClassInSpanToRule2 = extendedMethodsEdgeSpan.getMappingInRule2(classNodeInSpan);
+				Mapping mappingClassInSpanToRule2 = extendedMethodsEdgeSpan.getMappingIntoRule2(classNodeInSpan);
 				assertNotNull(mappingClassInSpanToRule2);
 				Node classInRule2 = mappingClassInSpanToRule2.getImage();
 				assertNotNull(classInRule2);
 				assertEquals("Class", classInRule2.getType().getName());
-				Mapping mappingMethodInSpanToRule2 = extendedMethodsEdgeSpan.getMappingInRule2(methodNodeInSpan);
+				Mapping mappingMethodInSpanToRule2 = extendedMethodsEdgeSpan.getMappingIntoRule2(methodNodeInSpan);
 				assertNotNull(mappingMethodInSpanToRule2);
 				Node methodInRule2 = mappingMethodInSpanToRule2.getImage();
 				assertNotNull(methodInRule2);
@@ -163,7 +163,7 @@ public class EnumerateDisjointCombinationsTest {
 				assertEquals("type", fixingEdgesOfTypeEdges.get(0).getType().getName());
 				assertEquals(decapsulateAttributeRule.getLhs(), fixingEdgesOfTypeEdges.get(0).getGraph());
 
-				Set<Span> disjointCombinationsToFixDanglingTypeEdge = atomicCoreCPA.enumerateDisjointCombinations(span,
+				Set<Span> disjointCombinationsToFixDanglingTypeEdge = atomicCoreCPA.enumerateExtensions(span,
 						fixingEdgesOfTypeEdges);
 				assertEquals(1, disjointCombinationsToFixDanglingTypeEdge.size());
 
@@ -179,12 +179,12 @@ public class EnumerateDisjointCombinationsTest {
 				Node classNodeInSpan = typeEdge.getTarget();
 				// In Rule1: source: 1:Class, target: 2:Method
 				assertEquals(2, extendedSpanTypeEdge.getMappingsInRule1().size());
-				Mapping mappingMethodInSpanToRule1 = extendedSpanTypeEdge.getMappingInRule1(methodNodeInSpan);
+				Mapping mappingMethodInSpanToRule1 = extendedSpanTypeEdge.getMappingIntoRule1(methodNodeInSpan);
 				assertNotNull(mappingMethodInSpanToRule1);
 				Node methodInRule1 = mappingMethodInSpanToRule1.getImage();
 				assertNotNull(methodInRule1);
 				assertEquals("Method", methodInRule1.getType().getName());
-				Mapping classMappingInSpanToRule1 = extendedSpanTypeEdge.getMappingInRule1(classNodeInSpan);
+				Mapping classMappingInSpanToRule1 = extendedSpanTypeEdge.getMappingIntoRule1(classNodeInSpan);
 				assertNotNull(classMappingInSpanToRule1);
 				Node classInRule1 = classMappingInSpanToRule1.getImage();
 				assertNotNull(classInRule1);
@@ -192,12 +192,12 @@ public class EnumerateDisjointCombinationsTest {
 
 				// In Rule2: soure: 11:Class, target 13:Method
 				assertEquals(2, extendedSpanTypeEdge.getMappingsInRule2().size());
-				Mapping mappingMethod_InSpanToRule2 = extendedSpanTypeEdge.getMappingInRule2(methodNodeInSpan);
+				Mapping mappingMethod_InSpanToRule2 = extendedSpanTypeEdge.getMappingIntoRule2(methodNodeInSpan);
 				assertNotNull(mappingMethod_InSpanToRule2);
 				Node methodInRule2 = mappingMethod_InSpanToRule2.getImage();
 				assertNotNull(methodInRule2);
 				assertEquals("Method", methodInRule2.getType().getName());
-				Mapping mappingClassInSpanToRule2 = extendedSpanTypeEdge.getMappingInRule2(classNodeInSpan);
+				Mapping mappingClassInSpanToRule2 = extendedSpanTypeEdge.getMappingIntoRule2(classNodeInSpan);
 				assertNotNull(mappingClassInSpanToRule2);
 				Node classInRule2 = mappingClassInSpanToRule2.getImage();
 				assertNotNull(classInRule2);

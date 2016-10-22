@@ -1,4 +1,4 @@
-package org.eclipse.emf.henshin.cpa.atomic.runner;
+package org.eclipse.emf.henshin.cpa.atomic.runner.pullback;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.Map;
 
 import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.henshin.cpa.atomic.runner.Logger;
 import org.eclipse.emf.henshin.model.Action;
 import org.eclipse.emf.henshin.model.Edge;
 import org.eclipse.emf.henshin.model.Node;
@@ -18,7 +19,7 @@ import org.eclipse.emf.henshin.model.Rule;
 
 import de.bigtrafo.measurement.compactness.RuleSetMetricsCalculator;
 
-public class Logger {
+public class CandidatesLoggerPB extends LoggerPB{
 
 	private static DateFormat dateFormat = new SimpleDateFormat("yy_MM_dd-HHmmss");
 	
@@ -147,7 +148,7 @@ public class Logger {
 		try {
 			
 			Date start = new Date();
-			String filename = targetFolder + File.separator + dateFormat.format(start) + "_runtime-results.csv";
+			String filename = targetFolder + File.separator + dateFormat.format(start) + "_conflictAtomCandidates-runtime.csv";
 			
 			
 			FileWriter fw = new FileWriter(filename);
@@ -181,7 +182,7 @@ public class Logger {
 		try {
 			
 			Date start = new Date();
-			String filename = targetFolder + File.separator + dateFormat.format(start) + "_conflicts-results.csv";
+			String filename = targetFolder + File.separator + dateFormat.format(start) + "_conflictAtomCandidates.csv";
 			
 			
 			FileWriter fw = new FileWriter(filename);

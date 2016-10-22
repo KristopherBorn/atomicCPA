@@ -1,4 +1,4 @@
-package org.eclipse.emf.henshin.cpa.atomic.runner;
+package org.eclipse.emf.henshin.cpa.atomic.runner.pullback;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -18,7 +18,7 @@ import org.eclipse.emf.henshin.model.Rule;
 
 import de.bigtrafo.measurement.compactness.RuleSetMetricsCalculator;
 
-public class Logger {
+public class LoggerPB {
 
 	private static DateFormat dateFormat = new SimpleDateFormat("yy_MM_dd-HHmmss");
 	

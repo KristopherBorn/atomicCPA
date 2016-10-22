@@ -42,7 +42,7 @@ import de.bigtrafo.measurement.compactness.RuleSetMetricsCalculator;
 import metrics.RuleMetrics;
 
 
-public class Runner {
+public class RefactoringRunner {
 
 // options to turn on and off different analyses
 	boolean runNormalCPA = true;
@@ -238,7 +238,7 @@ public class Runner {
 										ResultKeeper resultKeeper = new ResultKeeper(firstRuleList, secondRuleList, normalOptions);
 										ExecutorService executor = Executors.newSingleThreadExecutor();
 										try {
-											executor.submit(new CalculateCpaTask(resultKeeper)).get(2, TimeUnit.SECONDS);
+											executor.submit(new CalculateCpaTask(resultKeeper)).get(15, TimeUnit.MINUTES);
 										} catch (NullPointerException | InterruptedException | ExecutionException e) {
 											System.err.println("Timeout!");
 											executor.shutdown();
@@ -306,7 +306,7 @@ public class Runner {
 										ResultKeeper resultKeeper = new ResultKeeper(firstRuleList, secondRuleList, essentialOptions);
 										ExecutorService executor = Executors.newSingleThreadExecutor();
 										try {
-											executor.submit(new CalculateEssentialCpaTask(resultKeeper)).get(2, TimeUnit.SECONDS);
+											executor.submit(new CalculateEssentialCpaTask(resultKeeper)).get(15, TimeUnit.MINUTES);
 										} catch (NullPointerException | InterruptedException | ExecutionException e) {
 											System.err.println("Timeout!");
 											executor.shutdown();

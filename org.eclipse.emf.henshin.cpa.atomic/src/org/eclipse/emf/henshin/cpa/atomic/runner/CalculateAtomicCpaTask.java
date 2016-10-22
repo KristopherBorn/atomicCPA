@@ -1,7 +1,11 @@
 package org.eclipse.emf.henshin.cpa.atomic.runner;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.eclipse.emf.henshin.cpa.CPAOptions;
 import org.eclipse.emf.henshin.cpa.CpaByAGG;
@@ -56,7 +60,14 @@ public class CalculateAtomicCpaTask implements Callable<List<ConflictAtom>> {
 
 		long normalStartTime = System.currentTimeMillis();
 
-		List<ConflictAtom> computeConflictAtoms = atomicCoreCPA.computeConflictAtoms(firstRule, secondRule);
+		
+		List<ConflictAtom> computeConflictAtoms = new LinkedList<AtomicCoreCPA.ConflictAtom>();
+		
+		try {
+			computeConflictAtoms = atomicCoreCPA.computeConflictAtoms(firstRule, secondRule);
+		} catch (NullPointerException  e) {
+			System.err.println("Timeout!");
+		}
 		
 		long normalEndTime = System.currentTimeMillis();
 		normalRunTime = normalEndTime - normalStartTime;

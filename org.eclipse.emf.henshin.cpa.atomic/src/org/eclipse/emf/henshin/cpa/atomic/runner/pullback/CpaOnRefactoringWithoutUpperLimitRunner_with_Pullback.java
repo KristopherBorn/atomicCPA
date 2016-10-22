@@ -1,4 +1,4 @@
-package org.eclipse.emf.henshin.cpa.atomic.runner;
+package org.eclipse.emf.henshin.cpa.atomic.runner.pullback;
 
 import java.io.File;
 import java.util.LinkedList;
@@ -11,7 +11,7 @@ import org.eclipse.emf.ecore.xmi.impl.EcoreResourceFactoryImpl;
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
 import de.imotep.featuremodel.variability.metamodel.FeatureModel.FeatureModelPackage;
 
-public class CpaOnRefactoringWithoutUpperLimitRunner extends Runner{
+public class CpaOnRefactoringWithoutUpperLimitRunner_with_Pullback extends Runner_WithPullback{
 	
 	// Relative path to the transformations.
 //	static String TRANSFORMATIONS = "transformations/"; //überflüssig
@@ -39,7 +39,7 @@ public class CpaOnRefactoringWithoutUpperLimitRunner extends Runner{
 		
 		List<String> deactivatedRules = new LinkedList<String>();
 		
-		final File f = new File(Runner.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+		final File f = new File(Runner_WithPullback.class.getProtectionDomain().getCodeSource().getLocation().getPath());
 		String filePath = f.toString();
 		// String shortendPath = filePath.replaceAll("org.eclipse.emf.henshin.cpa.atomic\\bin", "");
 		String projectPath = filePath.replaceAll("bin", "");
@@ -51,7 +51,7 @@ public class CpaOnRefactoringWithoutUpperLimitRunner extends Runner{
 		String subDirectoryPath = "testData\\refactoringWithoutUpperLimitsOnReferences\\";
 		String fullSubDirectoryPath = projectPath + subDirectoryPath;
 		
-		RefactoringRunner runner = new RefactoringRunner();
+		RefactoringRunner_WithPullback runner = new RefactoringRunner_WithPullback();
 		runner.setAnalysisKinds(true, true, true);
 		runner.run(fullSubDirectoryPath, deactivatedRules);
 	}
