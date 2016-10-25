@@ -7,13 +7,13 @@
         eType="#//Method" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="variables" upperBound="-1"
         eType="#//Attribute" containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="generalized" eType="#//Generalization"
-        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="generalized" upperBound="-1"
+        eType="#//Generalization" containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Attribute">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="visibility"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="type" eType="#//Class"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="type" upperBound="-1" eType="#//Class"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Method">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"/>
@@ -22,16 +22,16 @@
         eType="#//Attribute"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="updates" upperBound="-1"
         eType="#//Attribute"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="type" upperBound="2" eType="#//Class"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="type" upperBound="-1" eType="#//Class"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" upperBound="-1"
         eType="#//Parameter" containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Parameter">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="type" upperBound="2" eType="#//Class"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="type" upperBound="-1" eType="#//Class"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Generalization">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="by" eType="#//Class"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="by" upperBound="-1" eType="#//Class"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Package">
     <eStructuralFeatures xsi:type="ecore:EReference" name="classes" upperBound="-1"

@@ -10,6 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.util.EcoreUtil.Copier;
 import org.eclipse.emf.henshin.cpa.CPAOptions;
 import org.eclipse.emf.henshin.cpa.CpaByAGG;
@@ -26,6 +27,7 @@ import org.eclipse.emf.henshin.cpa.result.CPAResult;
 import org.eclipse.emf.henshin.cpa.result.Conflict;
 import org.eclipse.emf.henshin.cpa.result.ConflictKind;
 import org.eclipse.emf.henshin.cpa.result.CriticalPair;
+import org.eclipse.emf.henshin.interpreter.Match;
 import org.eclipse.emf.henshin.model.Graph;
 import org.eclipse.emf.henshin.model.HenshinFactory;
 import org.eclipse.emf.henshin.model.Mapping;
@@ -55,7 +57,7 @@ public class Runner_WithPullback {
 	
 
 
-	public void run(String fullSubDirectoryPath, List<String> deactivatedRules) {
+	public void runWithActivatedRules(String fullSubDirectoryPath, List<String> activatedRules) {
 
 //		LoggerPB logger = new LoggerPB();
 		List<LoggerPB> loggers = new LinkedList<>();
@@ -63,18 +65,18 @@ public class Runner_WithPullback {
 		loggers.add(normalCpaLogger);
 		LoggerPB essentialCpaLogger = new EssentialCpaLoggerPB();
 		loggers.add(essentialCpaLogger);
-		LoggerPB conflictAtomLogger = new ConflictAtomLoggerPB();
-		loggers.add(conflictAtomLogger);
-		LoggerPB candidatesLogger = new CandidatesLoggerPB();
-		loggers.add(candidatesLogger);
-		LoggerPB minimalReasonLogger = new MinimalReasonLoggerPB();
+//		LoggerPB conflictAtomLogger = new ConflictAtomLoggerPB();
+//		loggers.add(conflictAtomLogger);
+//		LoggerPB candidatesLogger = new CandidatesLoggerPB();
+//		loggers.add(candidatesLogger);
+		LoggerPB minimalReasonLogger = new MinimalConflReasonLoggerPB();
 		loggers.add(minimalReasonLogger);
 
 
 		File dir = new File(fullSubDirectoryPath);
 		List<String> pathsToHenshinFiles = inspectDirectoryForHenshinFiles(dir);
 
-		List<Rule> allLoadedRules = loadAllRulesFromFileSystemPaths(pathsToHenshinFiles, deactivatedRules);
+		List<Rule> allLoadedRules = loadAllActivatedRulesFromFileSystemPaths(pathsToHenshinFiles, activatedRules);
 
 		// fix inconsistent dangling options : all rules shall "check dangling"
 		for(Rule rule : allLoadedRules){
@@ -238,7 +240,7 @@ public class Runner_WithPullback {
 										ResultKeeper resultKeeper = new ResultKeeper(firstRuleList, secondRuleList, normalOptions);
 										ExecutorService executor = Executors.newSingleThreadExecutor();
 										try {
-											executor.submit(new CalculateCpaTask(resultKeeper)).get(2, TimeUnit.SECONDS);
+											executor.submit(new CalculateCpaTask(resultKeeper)).get(10, TimeUnit.SECONDS);
 										} catch (NullPointerException | InterruptedException | ExecutionException e) {
 											System.err.println("Timeout!");
 											executor.shutdown();
@@ -264,11 +266,28 @@ public class Runner_WithPullback {
 											//	runTimesOfRuleCombination.append(",");
 											
 											List<CriticalPair> filteredDeleteUseConflicts = filterDeleteUseConflicts(normalResult);
-											amountOfDeleteUseConflictsOfRulecombination
-											.append(String.valueOf(filteredDeleteUseConflicts.size()));
-											amountOfDeleteUseConflictsOfRulecombination.append(",");
+//											amountOfDeleteUseConflictsOfRulecombination
+//											.append(String.valueOf(filteredDeleteUseConflicts.size()));
+//											amountOfDeleteUseConflictsOfRulecombination.append(",");
 											
 											totalNumberOfNormalCPs += filteredDeleteUseConflicts.size();
+											
+//											get with the pushout here!
+//											- verfügbare "matches" untersuchen!!!
+//											CriticalPair critPair = normalResult.getCriticalPairs().get(0);
+											int sumOfElementsInPullback = 0;
+											for(CriticalPair critPair : filteredDeleteUseConflicts){
+												Conflict confl = (Conflict) critPair;
+												Rule r1 = confl.getFirstRule();
+												Rule r2 = confl.getFirstRule();
+//											EPackage minimalModel = confl.getMinimalModel();
+												Match match1 = confl.getMatch1();
+												Match match2 = confl.getMatch2();
+												int elementsOfPullBack = computePullback(r1, match1, match2, r2);
+												sumOfElementsInPullback += elementsOfPullBack;
+											}
+											amountOfDeleteUseConflictsOfRulecombination.append(sumOfElementsInPullback);
+											
 										} else {											
 											System.err.println("normal CPA failed!");
 
@@ -306,7 +325,7 @@ public class Runner_WithPullback {
 										ResultKeeper resultKeeper = new ResultKeeper(firstRuleList, secondRuleList, essentialOptions);
 										ExecutorService executor = Executors.newSingleThreadExecutor();
 										try {
-											executor.submit(new CalculateEssentialCpaTask(resultKeeper)).get(2, TimeUnit.SECONDS);
+											executor.submit(new CalculateEssentialCpaTask(resultKeeper)).get(10, TimeUnit.SECONDS);
 										} catch (NullPointerException | InterruptedException | ExecutionException e) {
 											System.err.println("Timeout!");
 											executor.shutdown();
@@ -337,11 +356,29 @@ public class Runner_WithPullback {
 											numberOfFilteredEssentialConflicts += filteredDeleteUseConflicts.size();
 											System.err.println("delete-use-conflicts: " + filteredDeleteUseConflicts.size());
 											
-											amountOfDeleteUseConflictsOfRulecombination
-											.append(String.valueOf(filteredDeleteUseConflicts.size()));
-											amountOfDeleteUseConflictsOfRulecombination.append(",");
+//											amountOfDeleteUseConflictsOfRulecombination
+//											.append(String.valueOf(filteredDeleteUseConflicts.size()));
+//											amountOfDeleteUseConflictsOfRulecombination.append(",");
 											
 											totalNumberOfEssentialCPs += filteredDeleteUseConflicts.size();
+											
+											
+//											get with the pushout here!
+//											- verfügbare "matches" untersuchen!!!
+//											CriticalPair critPair = normalResult.getCriticalPairs().get(0);
+											int sumOfElementsInPullback = 0;
+											for(CriticalPair critPair : filteredDeleteUseConflicts){
+												Conflict confl = (Conflict) critPair;
+												Rule r1 = confl.getFirstRule();
+												Rule r2 = confl.getFirstRule();
+//											EPackage minimalModel = confl.getMinimalModel();
+												Match match1 = confl.getMatch1();
+												Match match2 = confl.getMatch2();
+												int elementsOfPullBack = computePullback(r1, match1, match2, r2);
+												sumOfElementsInPullback += elementsOfPullBack;
+											}
+											amountOfDeleteUseConflictsOfRulecombination.append(sumOfElementsInPullback);
+											
 										} else {
 											runTimesOfRuleCombination.append("TO");
 //											runTimesOfRuleCombination.append(",");
@@ -425,22 +462,22 @@ public class Runner_WithPullback {
 //							numberOfNodesAndEdges += ruleMetrics.getNumberOfNodes();
 										
 										
-										if(!ruleMetricAdded){
-											conflictAtomLogger.addData(firstRule, originalRuleOfRule2, Integer.toString(elementsInLhsOfSecondRule),Integer.toString(elementsInLhsOfSecondRule));
-										}
-										if(!canceled){
-											conflictAtomLogger.addData(firstRule, originalRuleOfRule2, runTimesOfRuleCombination.toString(),
-													String.valueOf(atomicCoreCpaConflictAtoms.size()));
-										}
-											
-											
-										if(!ruleMetricAdded){
-											candidatesLogger.addData(firstRule, originalRuleOfRule2, Integer.toString(elementsInLhsOfSecondRule),Integer.toString(elementsInLhsOfSecondRule));
-										}
-										if(!canceled){
-											candidatesLogger.addData(firstRule, originalRuleOfRule2, runTimesOfRuleCombination.toString(),
-													String.valueOf(atomicCoreCpaCandidates.size()));
-										}
+//										if(!ruleMetricAdded){
+//											conflictAtomLogger.addData(firstRule, originalRuleOfRule2, Integer.toString(elementsInLhsOfSecondRule),Integer.toString(elementsInLhsOfSecondRule));
+//										}
+//										if(!canceled){
+//											conflictAtomLogger.addData(firstRule, originalRuleOfRule2, runTimesOfRuleCombination.toString(),
+//													String.valueOf(atomicCoreCpaConflictAtoms.size()));
+//										}
+//											
+//											
+//										if(!ruleMetricAdded){
+//											candidatesLogger.addData(firstRule, originalRuleOfRule2, Integer.toString(elementsInLhsOfSecondRule),Integer.toString(elementsInLhsOfSecondRule));
+//										}
+//										if(!canceled){
+//											candidatesLogger.addData(firstRule, originalRuleOfRule2, runTimesOfRuleCombination.toString(),
+//													String.valueOf(atomicCoreCpaCandidates.size()));
+//										}
 											
 												
 										if(!ruleMetricAdded){
@@ -569,7 +606,7 @@ private boolean ruleIsntLimited(Rule ruleToCheck) {
 		this.runAtomicAnalysis = runAtomicAnalysis;
 	}
 
-	private List<Rule> loadAllRulesFromFileSystemPaths(List<String> pathsToHenshinFiles, List<String> namesOfDeactivatedRules) {
+	private List<Rule> loadAllActivatedRulesFromFileSystemPaths(List<String> pathsToHenshinFiles, List<String> namesOfActivatedRules) {
 		List<Rule> allEditRulesWithoutAmalgamation = new LinkedList<Rule>();
 
 		for (String pathToHenshinFiles : pathsToHenshinFiles) {
@@ -578,12 +615,20 @@ private boolean ruleIsntLimited(Rule ruleToCheck) {
 			for (Unit unit : module.getUnits()) {
 				if (unit instanceof Rule /* && numberOfAddedRules<10 */) {
 					// rulesAndAssociatedFileNames.put((Rule) unit, fileName);
-					boolean deactivatedRule = false;
-					for (String deactivatedRuleName : namesOfDeactivatedRules) {
-						if (unit.getName().contains(deactivatedRuleName))
-							deactivatedRule = true;
-					}
-					if (!deactivatedRule) {
+					boolean activatedRule = false;
+//					for (String activatedRuleName : namesOfActivatedRules) {
+
+						if (namesOfActivatedRules.contains(unit.getName()))
+							allEditRulesWithoutAmalgamation.add((Rule) unit);
+//							System.out.println("deactivated runN to comp.: "+activatedRuleName);
+//							System.out.println("name of loaded rule:       "+unit.getName());
+//							activatedRule = true;
+//						if (unit.getName().contains(activatedRuleName))
+//							System.out.println("deactivated runN to comp.: "+activatedRuleName);
+//							System.out.println("name of loaded rule:       "+unit.getName());
+//							activatedRule = true;
+//					}
+					if (activatedRule) {
 						allEditRulesWithoutAmalgamation.add((Rule) unit);
 					}
 				}
@@ -649,4 +694,22 @@ private boolean ruleIsntLimited(Rule ruleToCheck) {
 		this.limitedSetOfRulesByRuleNames = limitedSetOfRulesByRuleNames;
 	}
 
+	//TODO: wieso nicht an der Pullback Datenstruktur die auch für die Atomic CP verwendet wurde orientieren?
+	//r1 <-(m1) G ->(m2) r2
+	private int computePullback(Rule r1, Match m1, Match m2, Rule r2) {
+
+		List<EObject> temporary = new LinkedList<EObject>();//empty
+		List<EObject> r2MatchTarget = new LinkedList<EObject>();//empty
+		List<EObject> result = new LinkedList<EObject>();//empty
+
+		for (Node node : r1.getLhs().getNodes()) {
+			temporary.add(m1.getNodeTarget(node));
+		}
+		for (Node node : r2.getLhs().getNodes()) {
+			r2MatchTarget.add(m2.getNodeTarget(node));
+			if (temporary.contains(m2.getNodeTarget(node)))
+				result.add(node);
+		}
+		return result.size();
+	}
 }

@@ -10,6 +10,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.util.EcoreUtil.Copier;
 import org.eclipse.emf.henshin.cpa.CPAOptions;
 import org.eclipse.emf.henshin.cpa.CpaByAGG;
@@ -31,6 +33,7 @@ import org.eclipse.emf.henshin.cpa.result.CPAResult;
 import org.eclipse.emf.henshin.cpa.result.Conflict;
 import org.eclipse.emf.henshin.cpa.result.ConflictKind;
 import org.eclipse.emf.henshin.cpa.result.CriticalPair;
+import org.eclipse.emf.henshin.interpreter.Match;
 import org.eclipse.emf.henshin.model.Graph;
 import org.eclipse.emf.henshin.model.HenshinFactory;
 import org.eclipse.emf.henshin.model.Mapping;
@@ -72,7 +75,7 @@ public class RefactoringRunner_WithPullback {
 		loggerPBs.add(conflictAtomLogger);
 		LoggerPB candidatesLogger = new CandidatesLoggerPB();
 		loggerPBs.add(candidatesLogger);
-		LoggerPB minimalReasonLogger = new MinimalReasonLoggerPB();
+		LoggerPB minimalReasonLogger = new MinimalConflReasonLoggerPB();
 		loggerPBs.add(minimalReasonLogger);
 
 
@@ -207,9 +210,14 @@ public class RefactoringRunner_WithPullback {
 							int elementsInLhsOfSecondRule = lhsOfOriginalRuleOfRule2.getNodes().size() + lhsOfOriginalRuleOfRule2.getEdges().size();
 							
 
-							if(skippedRules.contains(secondRule) || skippedRules.contains(originalRuleOfRule2))
-									System.err.println("skipping column for rule: "+secondRule.getName());
-							if(!skippedRules.contains(secondRule) && !skippedRules.contains(originalRuleOfRule2)){
+//							if(skippedRules.contains(secondRule) || skippedRules.contains(originalRuleOfRule2))
+//									System.err.println("skipping column for rule: "+secondRule.getName());
+//							if(!skippedRules.contains(secondRule) && !skippedRules.contains(originalRuleOfRule2)){
+							
+
+							if(ruleIsntLimited(secondRule)){
+								
+							
 								
 								if(ruleIsntLimited(secondRule)){
 									
@@ -235,7 +243,7 @@ public class RefactoringRunner_WithPullback {
 										ResultKeeper resultKeeper = new ResultKeeper(firstRuleList, secondRuleList, normalOptions);
 										ExecutorService executor = Executors.newSingleThreadExecutor();
 										try {
-											executor.submit(new CalculateCpaTask(resultKeeper)).get(15, TimeUnit.MINUTES);
+											executor.submit(new CalculateCpaTask(resultKeeper)).get(10, TimeUnit.SECONDS);
 										} catch (NullPointerException | InterruptedException | ExecutionException e) {
 											System.err.println("Timeout!");
 											executor.shutdown();
@@ -261,22 +269,28 @@ public class RefactoringRunner_WithPullback {
 											//	runTimesOfRuleCombination.append(",");
 											
 											List<CriticalPair> filteredDeleteUseConflicts = filterDeleteUseConflicts(normalResult);
-											amountOfDeleteUseConflictsOfRulecombination
-											.append(String.valueOf(filteredDeleteUseConflicts.size()));
-											amountOfDeleteUseConflictsOfRulecombination.append(",");
+//											amountOfDeleteUseConflictsOfRulecombination
+//											.append(String.valueOf(filteredDeleteUseConflicts.size()));
+//											amountOfDeleteUseConflictsOfRulecombination.append(",");
 											
 											totalNumberOfNormalCPs += filteredDeleteUseConflicts.size();
+										
 											
-											get with the pushout here!
-											- verfügbare "matches" untersuchen!!!
-
+//											get with the pushout here!
+//											- verfügbare "matches" untersuchen!!!
 //											CriticalPair critPair = normalResult.getCriticalPairs().get(0);
-//											Conflict confl = (Conflict) critPair;
-//											confl.getFirstRule();
-//											confl.getFirstRule();
-//											confl.getMinimalModel();
-//											confl.getMatch1();
-//											confl.getMatch2();
+											int sumOfElementsInPullback = 0;
+											for(CriticalPair critPair : normalResult.getCriticalPairs()){
+												Conflict confl = (Conflict) critPair;
+												Rule r1 = confl.getFirstRule();
+												Rule r2 = confl.getFirstRule();
+//											EPackage minimalModel = confl.getMinimalModel();
+												Match match1 = confl.getMatch1();
+												Match match2 = confl.getMatch2();
+												int elementsOfPullBack = computePullback(r1, match1, match2, r2);
+												sumOfElementsInPullback += elementsOfPullBack;
+											}
+											amountOfDeleteUseConflictsOfRulecombination.append(sumOfElementsInPullback);
 											
 										} else {											
 											System.err.println("normal CPA failed!");
@@ -315,7 +329,7 @@ public class RefactoringRunner_WithPullback {
 										ResultKeeper resultKeeper = new ResultKeeper(firstRuleList, secondRuleList, essentialOptions);
 										ExecutorService executor = Executors.newSingleThreadExecutor();
 										try {
-											executor.submit(new CalculateEssentialCpaTask(resultKeeper)).get(15, TimeUnit.MINUTES);
+											executor.submit(new CalculateEssentialCpaTask(resultKeeper)).get(15, TimeUnit.SECONDS);
 										} catch (NullPointerException | InterruptedException | ExecutionException e) {
 											System.err.println("Timeout!");
 											executor.shutdown();
@@ -346,11 +360,30 @@ public class RefactoringRunner_WithPullback {
 											numberOfFilteredEssentialConflicts += filteredDeleteUseConflicts.size();
 											System.err.println("delete-use-conflicts: " + filteredDeleteUseConflicts.size());
 											
-											amountOfDeleteUseConflictsOfRulecombination
-											.append(String.valueOf(filteredDeleteUseConflicts.size()));
-											amountOfDeleteUseConflictsOfRulecombination.append(",");
+//											amountOfDeleteUseConflictsOfRulecombination
+//											.append(String.valueOf(filteredDeleteUseConflicts.size()));
+//											amountOfDeleteUseConflictsOfRulecombination.append(",");
 											
 											totalNumberOfEssentialCPs += filteredDeleteUseConflicts.size();
+
+											
+//											get with the pushout here!
+//											- verfügbare "matches" untersuchen!!!
+//											CriticalPair critPair = normalResult.getCriticalPairs().get(0);
+											int sumOfElementsInPullback = 0;
+											for(CriticalPair critPair : essentialResult.getCriticalPairs()){
+												Conflict confl = (Conflict) critPair;
+												Rule r1 = confl.getFirstRule();
+												Rule r2 = confl.getFirstRule();
+//											EPackage minimalModel = confl.getMinimalModel();
+												Match match1 = confl.getMatch1();
+												Match match2 = confl.getMatch2();
+												int elementsOfPullBack = computePullback(r1, match1, match2, r2);
+												sumOfElementsInPullback += elementsOfPullBack;
+											}
+											amountOfDeleteUseConflictsOfRulecombination.append(sumOfElementsInPullback);
+											
+											
 										} else {
 											runTimesOfRuleCombination.append("TO");
 //											runTimesOfRuleCombination.append(",");
@@ -660,18 +693,18 @@ private boolean ruleIsntLimited(Rule ruleToCheck) {
 
 	//TODO: wieso nicht an der Pullback Datenstruktur die auch für die Atomic CP verwendet wurde orientieren?
 	//r1 <-(m1) G ->(m2) r2
-	private int computePullback(Rule r1, Match m1, Graph G, Match m2, Rule r2) {
+	private int computePullback(Rule r1, Match m1, Match m2, Rule r2) {
 
-		List<Node> temporary = empty
-		List<Node> result = empty
+		List<EObject> temporary = new LinkedList<EObject>();//empty
+		List<EObject> result = new LinkedList<EObject>();//empty
 
-for (Node node : r1.getLhs().getNodes()) {
-     temporary.add(m1.get(node));
-}
-
-for (Node node : r2.getLhs().getNodes()) {
-     if (temporary.contains(m2.get(node)))
-         result.add(node);
-}
-
+		for (Node node : r1.getLhs().getNodes()) {
+			temporary.add(m1.getNodeTarget(node));
+		}
+		for (Node node : r2.getLhs().getNodes()) {
+			if (temporary.contains(m2.getNodeTarget(node)))
+				result.add(node);
+		}
+		return result.size();
+	}
 }

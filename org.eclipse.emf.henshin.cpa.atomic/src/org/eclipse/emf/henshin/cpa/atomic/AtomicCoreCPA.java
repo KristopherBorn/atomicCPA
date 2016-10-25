@@ -404,6 +404,12 @@ public class AtomicCoreCPA {
 			boolean outgoing) {
 		EList<Edge> r2corresponding = findCorrespondingEdges(extSpan, s1Fixing, r2existing, outgoing);
 		for (Edge s2cor : r2corresponding) {
+			if(outgoing){
+				System.err.println("outgoing situation");
+			} else {
+				System.err.println("incoming situation");
+			}
+			System.err.println("");
 			Span span = new Span(extSpan, extNode, outgoing ? s2cor.getTarget() : s2cor.getSource());
 		
 			extensions.add(span);

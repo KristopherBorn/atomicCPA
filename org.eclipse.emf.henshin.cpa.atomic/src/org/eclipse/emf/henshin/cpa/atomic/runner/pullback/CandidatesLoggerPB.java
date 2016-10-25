@@ -182,7 +182,7 @@ public class CandidatesLoggerPB extends LoggerPB{
 		try {
 			
 			Date start = new Date();
-			String filename = targetFolder + File.separator + dateFormat.format(start) + "_conflictAtomCandidates.csv";
+			String filename = targetFolder + File.separator + dateFormat.format(start) + "_confAtomCand.csv";
 			
 			
 			FileWriter fw = new FileWriter(filename);
