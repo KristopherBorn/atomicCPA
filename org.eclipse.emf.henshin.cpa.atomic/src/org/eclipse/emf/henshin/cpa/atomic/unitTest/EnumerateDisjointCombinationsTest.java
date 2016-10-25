@@ -183,12 +183,14 @@ public class EnumerateDisjointCombinationsTest {
 				assertNotNull(mappingMethodInSpanToRule1);
 				Node methodInRule1 = mappingMethodInSpanToRule1.getImage();
 				assertNotNull(methodInRule1);
-				assertEquals("Method", methodInRule1.getType().getName());
+				assertEquals(decapsulateAttributeRule.getLhs().getNode("2"), methodInRule1);
+				assertEquals("Method", methodInRule1.getType().getName()); // seems to be superfluous due to new improved check before
 				Mapping classMappingInSpanToRule1 = extendedSpanTypeEdge.getMappingIntoRule1(classNodeInSpan);
 				assertNotNull(classMappingInSpanToRule1);
 				Node classInRule1 = classMappingInSpanToRule1.getImage();
 				assertNotNull(classInRule1);
-				assertEquals("Class", classInRule1.getType().getName());
+				assertEquals(decapsulateAttributeRule.getLhs().getNode("6"), classInRule1);
+				assertEquals("Class", classInRule1.getType().getName()); // seems to be superfluous due to new improved check before
 
 				// In Rule2: soure: 11:Class, target 13:Method
 				assertEquals(2, extendedSpanTypeEdge.getMappingsInRule2().size());
@@ -196,12 +198,14 @@ public class EnumerateDisjointCombinationsTest {
 				assertNotNull(mappingMethod_InSpanToRule2);
 				Node methodInRule2 = mappingMethod_InSpanToRule2.getImage();
 				assertNotNull(methodInRule2);
-				assertEquals("Method", methodInRule2.getType().getName());
+				assertEquals(pullUpEncapsulatedAttributeRule.getLhs().getNode("13"), methodInRule2);
+				assertEquals("Method", methodInRule2.getType().getName()); // seems to be superfluous due to new improved check before
 				Mapping mappingClassInSpanToRule2 = extendedSpanTypeEdge.getMappingIntoRule2(classNodeInSpan);
 				assertNotNull(mappingClassInSpanToRule2);
 				Node classInRule2 = mappingClassInSpanToRule2.getImage();
 				assertNotNull(classInRule2);
-				assertEquals("Class", classInRule2.getType().getName());
+				assertEquals(pullUpEncapsulatedAttributeRule.getLhs().getNode("16"), classInRule2);
+				assertEquals("Class", classInRule2.getType().getName()); // seems to be superfluous due to new improved check before
 			}
 		}
 	}
