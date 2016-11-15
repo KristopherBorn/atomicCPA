@@ -42,14 +42,25 @@ public class ComputeCandidatesTest {
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 		
 		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeCandidates(decapsulateAttributeRule, pullUpEncapsulatedAttributeRule);
-		
-		System.out.println("HALT");
-		
+				
 		assertEquals(5, conflictAtomCandidates.size());
+		
+		int amountOfConflictAtomCandidatesOfTypeMethod = 0;
+		int amountOfConflictAtomCandidatesOfTypeParameter = 0;
 		
 		for(AtomicCoreCPA.Span candidate : conflictAtomCandidates){
 			EList<Node> nodesOfCandidate = candidate.getGraph().getNodes();
+			//TODO: check that all mappings point in the LHSs
+			//TODO: check same type on all nodes!
 			assertEquals(1, nodesOfCandidate.size());
+
+			if(nodesOfCandidate.get(0).getType().getName().equals("Method"))
+				amountOfConflictAtomCandidatesOfTypeMethod++;
+			if(nodesOfCandidate.get(0).getType().getName().equals("Parameter"))
+				amountOfConflictAtomCandidatesOfTypeParameter++;
 		}
+//		TODO: prüfen, dass es sich viermal um :Method und einmal um :Parameter handelt!
+		assertEquals(4, amountOfConflictAtomCandidatesOfTypeMethod);
+		assertEquals(1, amountOfConflictAtomCandidatesOfTypeParameter);
 	}
 }

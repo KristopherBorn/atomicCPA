@@ -4,7 +4,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.eclipse.emf.common.util.BasicEList;
 import org.eclipse.emf.common.util.EList;
@@ -52,6 +54,9 @@ public class AtomicCoreCPA {
 	HenshinFactory henshinFactory = new HenshinFactoryImpl();
 
 	public List<ConflictAtom> computeConflictAtoms(Rule rule1, Rule rule2) {
+		
+		checkNull(rule1, "rule1");
+		checkNull(rule2, "rule2");
 
 		List<ConflictAtom> result = new LinkedList<ConflictAtom>();
 		candidates = computeCandidates(rule1, rule2);
@@ -84,6 +89,10 @@ public class AtomicCoreCPA {
 	// Wie programmatisch instanzen des jeweiligen MM erstellen?
 	// Henshins "MappingImpl" Klasse wirklich geeignet? Oder eher MatchImpl?
 	public List<Span> computeCandidates(Rule rule1, Rule rule2) {
+
+		checkNull(rule1, "rule1");
+		checkNull(rule2, "rule2");
+		
 		List<Span> result = new LinkedList<Span>();
 		Action deleteAction = new Action(Action.Type.DELETE);
 
@@ -181,6 +190,8 @@ public class AtomicCoreCPA {
 	}
 
 	public void computeMinReasons(Rule rule1, Rule rule2, Span s1, Set<Span> reasons) {
+		checkNull(rule1, "rule1");
+		checkNull(rule2, "rule2");
 		if (isMinReason(rule1, rule2, s1)) {
 			reasons.add(s1);
 			return;
@@ -404,7 +415,7 @@ public class AtomicCoreCPA {
 			boolean outgoing) {
 		EList<Edge> r2corresponding = findCorrespondingEdges(extSpan, s1Fixing, r2existing, outgoing);
 		for (Edge s2cor : r2corresponding) {
-			if(outgoing){
+			if(outgoing){//TODO: ENTFERNEN!!!!
 				System.err.println("outgoing situation");
 			} else {
 				System.err.println("incoming situation");
@@ -488,14 +499,6 @@ public class AtomicCoreCPA {
 			return span;
 		}
 
-		// TODO: remove - ÜBERFLÜSSIG!
-		// /**
-		// * @return the reasons
-		// */
-		// public Set<Span> getReasons() {
-		// return reasons;
-		// }
-
 		Set<Span> reasons;
 
 		// in Algo Zeile 6 wird ein Atom mit den Parametern candidate und reasons initilisiert.
@@ -503,6 +506,17 @@ public class AtomicCoreCPA {
 		public ConflictAtom(Span candidate, Set<Span> reasons) {
 			this.span = candidate;
 			this.reasons = reasons;
+		}
+		
+		// bisher werden die "reason's" nicht berücksichtigt, 
+		// da auch nicht klar ist wozu diese eigentlich da sind um was es sich dabei handelt. 
+		@Override
+		public String toString(){
+			return span.toString();
+		}
+
+		public String toShortString() {
+			return span.toShortString();
 		}
 
 	}
@@ -527,6 +541,10 @@ public class AtomicCoreCPA {
 		List<Mapping> mappingsInRule1;
 		List<Mapping> mappingsInRule2;
 
+		Graph graph;
+
+		private Copier copierForSpanAndMappings;
+
 		// Scheint derzeit ncoh überflüssig zu sein!
 		/*
 		 * (non-Javadoc)
@@ -543,6 +561,61 @@ public class AtomicCoreCPA {
 			// due to missing knwoledge on the hashCode of two lists with equal content but different order
 			// result = prime * result + ((mappingsInRule2 == null) ? 0 : mappingsInRule2.hashCode());
 			return result;
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#toString()
+		 */
+		@Override
+		public String toString() {
+			return "Span [mappingsInRule1=" + mappingsInRule1 + ", mappingsInRule2=" + mappingsInRule2 + ", graph: "
+					+ graph.getNodes().size() + " Nodes, " + graph.getEdges().size() + " Edges" + "]";
+		}
+		
+		public String toShortString() {
+			StringBuilder sB = new StringBuilder();
+			for(Edge edge : graph.getEdges()){
+				sB.append(shortStringInfoOfGraphEdge(edge));
+				sB.append(", ");
+			}
+			for(Node node : graph.getNodes()){
+				sB.append(shortStringInfoOfGraphNode(node));
+				sB.append(", ");
+			}
+			//remove last superfluous appendency
+			if(sB.length()>0)
+				sB.delete(sB.length()-2, sB.length());
+			return "Span [" + sB.toString() + "]";
+		}
+
+		// e.g.  1,11->2,13:methods
+		private Object shortStringInfoOfGraphEdge(Edge edge) {
+			StringBuilder sB = new StringBuilder();
+			Node src = edge.getSource();
+			Node tgt = edge.getTarget();
+			sB.append(getMappingIntoRule1(src).getImage().getName());
+			sB.append(",");
+			sB.append(getMappingIntoRule2(src).getImage().getName());
+			sB.append("->");
+			sB.append(getMappingIntoRule1(tgt).getImage().getName());
+			sB.append(",");
+			sB.append(getMappingIntoRule2(tgt).getImage().getName());
+			sB.append(":");
+			sB.append(edge.getType().getName());
+			return sB.toString();
+		}
+
+		// e.g.: 2,3:Method
+		private String shortStringInfoOfGraphNode(Node node) {
+			StringBuilder sB = new StringBuilder();
+			Mapping mappingIntoRule1 = getMappingIntoRule1(node);
+			Mapping mappingIntoRule2 = getMappingIntoRule2(node);
+			sB.append(mappingIntoRule1.getImage().getName());
+			sB.append(",");
+			sB.append(mappingIntoRule2.getImage().getName());
+			sB.append(":");
+			sB.append(node.getType().getName());
+			return sB.toString();
 		}
 
 		/*
@@ -647,10 +720,11 @@ public class AtomicCoreCPA {
 			return mappingsInRule2;
 		}
 
-		Graph graph;
-		private Copier copierForSpanAndMappings;
-
 		public Span(Mapping nodeInRule1Mapping, Graph s1, Mapping nodeInRule2Mapping) {
+			//TODO: introduce a check, that all mappings for rule1 are targeting to a common rule
+			//TODO: introduce a check, that all mappings for rule2 are targeting to a common rule
+			//TODO: introduce a check that rule 1 != rule2
+			//TODO: afterwards "pushout" tests have to be adapted!
 			this.graph = s1;
 			mappingsInRule1 = new LinkedList<Mapping>();
 			mappingsInRule1.add(nodeInRule1Mapping);
@@ -743,6 +817,37 @@ public class AtomicCoreCPA {
 			return AtomicCoreCPA.this;
 		}
 
+		//TODO: prüfen, dass es zu jedem Knoten im Graph des Span zwei Mappings gibt, die dem Span-Knoten jeweils einen Knoten in der LHS der Regel1 und Regel2 zuordnet
+		//		FRAGE: auch prüfen, dass die Kanten im Span auch in den beiden Regeln vorhanden sind?
+		public boolean validate(Rule rule1, Rule rule2) {
+			//missing or superfluous mappings or nodes in the graph of the span
+			if(mappingsInRule1.size() != graph.getNodes().size() || mappingsInRule2.size() != graph.getNodes().size())
+				return false;
+			// check all nodes of the graph of the span for valid mappings in the rules
+			for(Node node : graph.getNodes()){
+				Mapping mappingIntoRule1 = getMappingIntoRule1(node);
+				if(mappingIntoRule1.getImage() == null)
+					return false;
+				Node imageInRule1 = mappingIntoRule1.getImage();
+				if(imageInRule1.eContainer() != rule1.getLhs())
+					return false;
+				if(imageInRule1.getType() !=  node.getType()) //TODO: fix this regarding inheritance!
+					return false;
+				Mapping mappingIntoRule2 = getMappingIntoRule2(node);
+				if(mappingIntoRule2.getImage() == null)
+					return false;
+				Node imageInRule2 = mappingIntoRule2.getImage();
+				if(imageInRule2.eContainer() != rule2.getLhs())
+					return false;
+				if(imageInRule2.getType() !=  node.getType()) //TODO: fix this regarding inheritance!
+					return false;
+				
+			}
+			// Edges of the graph could be checked additionally.
+			// If this is done some tests should be set up as negative examples for such situations.
+			return true;
+		}
+
 	}
 
 	public PushoutResult newPushoutResult(Rule rule1, Span span, Rule rule2) {
@@ -792,6 +897,21 @@ public class AtomicCoreCPA {
 		private HashMap<Node, Node> mappingsOfRule2;
 
 		public PushoutResult(Rule rule1, Span s1span, Rule rule2) {
+			
+//			TODO: prüfen, dass alle mappings in die beiden Regeln verweisen, bzw. keine der Regeln NULL ist. Sonst werfen einer Exception!
+//			throw new IllegalStateException("blabla")
+//			ggf. in "static" Methode (Span) s1span.isValid() auslagern die eine "IllegalStateException" wirft 
+//			s1span.validate(rule1, rule2);
+			checkNull(rule1);
+			checkNull(s1span);
+			checkNull(rule2);
+			if(!s1span.validate(rule1, rule2))
+				throw new IllegalArgumentException("Span is in invalide state.");			
+
+//	        Predicate<Object> a = Objects::nonNull; // AHA Prädikate - keine Ahnung!
+//			Objects::nonNull(rule1); // bringt nichts, nur boolscher Rückgabewert!
+//			Objects.nonNull(rule2); // bringt nichts, nur boolscher Rückgabewert!
+			
 			Graph l1 = rule1.getLhs();
 			mappingsOfRule1 = new HashMap<Node,Node>();
 			Copier copierForRule1 = new Copier();
@@ -816,7 +936,7 @@ public class AtomicCoreCPA {
 			for (Node node : s1.getNodes()) {
 				// retarget associated edges
 				// get associated node and mapping in both copies
-				if (s1span.getMappingIntoRule2(node) == null) {
+				if (s1span.getMappingIntoRule2(node) == null) { //TODO: remove!
 					System.out.println("bla");
 				}
 				
@@ -826,6 +946,7 @@ public class AtomicCoreCPA {
 				
 				if (l1node == null || l2node == null) {
 					System.out.println("Did not find a L1 or L2 counterpart for one of the nodes in S1!");
+//					TODO: Exception werfen! 
 				} else {
 					Node mergedNode = mappingsOfRule1.get(l1node);
 					Node discardNode =  mappingsOfRule2.get(l2node);
@@ -894,6 +1015,59 @@ public class AtomicCoreCPA {
 			return null;
 		}
 
+	}
+	
+	public class UnsupportedRuleException extends RuntimeException {
+//		TODO
+	}
+
+	
+	
+	
+	//TODO: extract to "ExceptionUtilities" class
+	/**
+	 * Checks to see if an object is null, and if so 
+	 * generates an IllegalArgumentException with a fitting message.
+	 * 
+	 * @param o The object to check against null.
+	 * @param name The name of the object, used to format the exception message
+	 *
+	 * @throws IllegalArgumentException if o is null.
+	 */
+	public static void checkNull(Object o, String name) 
+	    throws IllegalArgumentException {
+	   if (null == o)
+	      throw new IllegalArgumentException(name + " must not be null");
+	}
+
+	public static void checkNull(Object o) throws IllegalArgumentException {
+	   checkNull(o, "object");
+	} 
+	
+	
+	/* not supported:
+	 * - multi rules
+	 * - application conditions
+	 * - inheritance?
+	 * (- attribute conditions [NACs & PACs])
+	 *  
+	 * TODO: normalen CPA check zur Hilfe nehmen um zu erkennen was noch geprüft werden könnte.
+	 */
+	public boolean isRuleSupported(Rule rule){
+		if(rule.getMultiRules().size() > 0){
+			throw new RuntimeException("multi rules are not supported");
+			// TODO: nochmal nachlesen wie Exception und return value ggf. doch zu vereinbaren sind und ob das hier ggf. Sinn macht.
+//			return false;
+		}
+		if(rule.getLhs().getNACs().size() > 0)
+			throw new RuntimeException("negative application conditions (NAC) are not supported");
+			// TODO: nochmal nachlesen wie Exception und return value ggf. doch zu vereinbaren sind und ob das hier ggf. Sinn macht.
+//			return false;
+		if(rule.getLhs().getPACs().size() > 0)
+			throw new RuntimeException("positive application conditions (PAC) are not supported");
+			// TODO: nochmal nachlesen wie Exception und return value ggf. doch zu vereinbaren sind und ob das hier ggf. Sinn macht.
+//			return false;
+		return true;
 	}
 
 }
