@@ -2,9 +2,12 @@ package org.eclipse.emf.henshin.cpa.atomic.unitTest;
 
 import static org.junit.Assert.*;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.henshin.cpa.atomic.DependencyAtom;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
@@ -14,6 +17,7 @@ import org.eclipse.emf.henshin.model.Node;
 import org.eclipse.emf.henshin.model.Rule;
 import org.eclipse.emf.henshin.model.Unit;
 import org.eclipse.emf.henshin.model.resource.HenshinResourceSet;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -44,6 +48,12 @@ public class ComputeConflictAtomsTest {
 		List<ConflictAtom> computedConflictAtoms = atomicCoreCPA.computeConflictAtoms(decapsulateAttributeRule,
 				pullUpEncapsulatedAttributeRule);
 		assertEquals(3, computedConflictAtoms.size());
+		
+		Set<ConflictAtom> methodCAs = new HashSet<ConflictAtom>();
+		
+		ConflictAtom conflictAtom_Method_2_13 = null;
+		ConflictAtom conflictAtom_Method_3_14 = null;
+		ConflictAtom conflictAtom_Parameter_5_15 = null;
 
 		int numberOf_METHOD_atoms = 0;
 		int numberOf_PARAMETER_atoms = 0;
@@ -54,8 +64,14 @@ public class ComputeConflictAtomsTest {
 			for (Node nodeInOverlapGraph : nodes) {
 				if (nodeInOverlapGraph.getType().getName().equals("Method")) {
 					numberOf_METHOD_atoms++;
+					if(nodeInOverlapGraph.getName().contains("13"))
+						conflictAtom_Method_2_13 = conflictAtom;
+					if(nodeInOverlapGraph.getName().contains("14"))
+						conflictAtom_Method_3_14 = conflictAtom;
 				} else if (nodeInOverlapGraph.getType().getName().equals("Parameter")) {
 					numberOf_PARAMETER_atoms++;
+					if(nodeInOverlapGraph.getName().contains("15"))
+						conflictAtom_Parameter_5_15 = conflictAtom;
 				} else {
 					assertTrue("node of wrong type in overlap graph", false);
 				}
@@ -63,6 +79,19 @@ public class ComputeConflictAtomsTest {
 		}
 		assertEquals(2, numberOf_METHOD_atoms);
 		assertEquals(1, numberOf_PARAMETER_atoms);
+		
+		//TODO: check that the two Reasons had been found AND that the three ConflictAtoms only have two (minimal)conflict reasons!
+		for(ConflictAtom conflictAtom : computedConflictAtoms){
+			Set<Span> reasons = conflictAtom.getReasons();
+			Assert.assertEquals(1, reasons.size());
+		}
+		
+		Span minimalConflictReasonOfMethod_3_14_Atom = conflictAtom_Method_3_14.getReasons().iterator().next();
+		Span minimalConflictReasonOfParameter_5_15_Atom = conflictAtom_Parameter_5_15.getReasons().iterator().next();
+//		System.out.println(conflictReasonOfMethod_3_14_Atom);
+//		System.out.println(conflictReasonOfParameter_5_15_Atom);
+		Assert.assertTrue(minimalConflictReasonOfMethod_3_14_Atom.equals(minimalConflictReasonOfParameter_5_15_Atom));
 	}
 
 }
+

@@ -11,24 +11,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.util.EcoreUtil.Copier;
 import org.eclipse.emf.henshin.cpa.CPAOptions;
 import org.eclipse.emf.henshin.cpa.CpaByAGG;
 import org.eclipse.emf.henshin.cpa.ICriticalPairAnalysis;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
-import org.eclipse.emf.henshin.cpa.atomic.compareLogger.CandidatesLogger;
-import org.eclipse.emf.henshin.cpa.atomic.compareLogger.ConflictAtomLogger;
-import org.eclipse.emf.henshin.cpa.atomic.compareLogger.EssentialCpaLogger;
-import org.eclipse.emf.henshin.cpa.atomic.compareLogger.MinimalReasonLogger;
-import org.eclipse.emf.henshin.cpa.atomic.compareLogger.NormalCpaLogger;
-import org.eclipse.emf.henshin.cpa.atomic.runner.AtomicResultKeeper;
-import org.eclipse.emf.henshin.cpa.atomic.runner.CalculateAtomicCpaTask;
-import org.eclipse.emf.henshin.cpa.atomic.runner.CalculateCpaTask;
-import org.eclipse.emf.henshin.cpa.atomic.runner.CalculateEssentialCpaTask;
-import org.eclipse.emf.henshin.cpa.atomic.runner.ResultKeeper;
+import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA;
+import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.tasks.AtomicResultContainer;
+import org.eclipse.emf.henshin.cpa.atomic.tasks.CalculateAtomicCpaTask;
+import org.eclipse.emf.henshin.cpa.atomic.tasks.CalculateCpaTask;
+import org.eclipse.emf.henshin.cpa.atomic.tasks.SingleCpaTaskResultContainer;
 import org.eclipse.emf.henshin.cpa.result.CPAResult;
 import org.eclipse.emf.henshin.cpa.result.Conflict;
 import org.eclipse.emf.henshin.cpa.result.ConflictKind;
@@ -45,9 +38,6 @@ import org.eclipse.emf.henshin.model.Rule;
 import org.eclipse.emf.henshin.model.Unit;
 import org.eclipse.emf.henshin.model.impl.HenshinFactoryImpl;
 import org.eclipse.emf.henshin.model.resource.HenshinResourceSet;
-
-import de.bigtrafo.measurement.compactness.RuleSetMetricsCalculator;
-import metrics.RuleMetrics;
 
 
 public class RefactoringRunner_WithPullback {
@@ -121,7 +111,7 @@ public class RefactoringRunner_WithPullback {
 
 //		logger.init(numberOfAddedRules);
 //		logger.setAddDetailsOnRuleName(true);
-//		logger.setAnalysisKinds(runNormalCPA, runEssentialCPA, runAtomicAnalysis);
+//		logger.setAnalysisKinds(runNormalCPA, runEssentialConflictAnalysis, runAtomicConflictAnalysis);
 		for(LoggerPB loggerPB : loggerPBs){
 			loggerPB.init(numberOfAddedRules);
 			loggerPB.setAddDetailsOnRuleName(true);
@@ -240,10 +230,10 @@ public class RefactoringRunner_WithPullback {
 										CPAResult normalResult = null;
 																			
 //								
-										ResultKeeper resultKeeper = new ResultKeeper(firstRuleList, secondRuleList, normalOptions);
+										SingleCpaTaskResultContainer singleCpaTaskResultContainer = new SingleCpaTaskResultContainer(firstRuleList, secondRuleList, normalOptions);
 										ExecutorService executor = Executors.newSingleThreadExecutor();
 										try {
-											executor.submit(new CalculateCpaTask(resultKeeper)).get(10, TimeUnit.SECONDS);
+											executor.submit(new CalculateCpaTask(singleCpaTaskResultContainer)).get(10, TimeUnit.SECONDS);
 										} catch (NullPointerException | InterruptedException | ExecutionException e) {
 											System.err.println("Timeout!");
 											executor.shutdown();
@@ -257,9 +247,9 @@ public class RefactoringRunner_WithPullback {
 										}
 										
 										executor.shutdown();
-										normalResult = resultKeeper.getResult();
+										normalResult = singleCpaTaskResultContainer.getResult();
 										
-										long normalRunTime = resultKeeper.getNormalRunTime();
+										long normalRunTime = singleCpaTaskResultContainer.getAnalysisDuration();
 										
 										totalNormalRuntime += normalRunTime;
 										
@@ -278,7 +268,7 @@ public class RefactoringRunner_WithPullback {
 											
 //											get with the pushout here!
 //											- verfügbare "matches" untersuchen!!!
-//											CriticalPair critPair = normalResult.getCriticalPairs().get(0);
+//											CriticalPair critPair = cpaResult.getCriticalPairs().get(0);
 											int sumOfElementsInPullback = 0;
 											for(CriticalPair critPair : normalResult.getCriticalPairs()){
 												Conflict confl = (Conflict) critPair;
@@ -326,10 +316,10 @@ public class RefactoringRunner_WithPullback {
 										
 
 										
-										ResultKeeper resultKeeper = new ResultKeeper(firstRuleList, secondRuleList, essentialOptions);
+										SingleCpaTaskResultContainer singleCpaTaskResultContainer = new SingleCpaTaskResultContainer(firstRuleList, secondRuleList, essentialOptions);
 										ExecutorService executor = Executors.newSingleThreadExecutor();
 										try {
-											executor.submit(new CalculateEssentialCpaTask(resultKeeper)).get(15, TimeUnit.SECONDS);
+											executor.submit(new CalculateCpaTask(singleCpaTaskResultContainer)).get(15, TimeUnit.SECONDS);
 										} catch (NullPointerException | InterruptedException | ExecutionException e) {
 											System.err.println("Timeout!");
 											executor.shutdown();
@@ -344,7 +334,7 @@ public class RefactoringRunner_WithPullback {
 										long essentialEndTime = System.currentTimeMillis();
 										
 										executor.shutdown();
-										essentialResult = resultKeeper.getResult();
+										essentialResult = singleCpaTaskResultContainer.getResult();
 										
 										
 										long essentialRunTime = essentialEndTime - essentialStartTime;
@@ -369,7 +359,7 @@ public class RefactoringRunner_WithPullback {
 											
 //											get with the pushout here!
 //											- verfügbare "matches" untersuchen!!!
-//											CriticalPair critPair = normalResult.getCriticalPairs().get(0);
+//											CriticalPair critPair = cpaResult.getCriticalPairs().get(0);
 											int sumOfElementsInPullback = 0;
 											for(CriticalPair critPair : essentialResult.getCriticalPairs()){
 												Conflict confl = (Conflict) critPair;
@@ -416,7 +406,7 @@ public class RefactoringRunner_WithPullback {
 										
 										
 										
-										AtomicResultKeeper resultKeeper = new AtomicResultKeeper(firstRule, secondRule);
+										AtomicResultContainer resultKeeper = new AtomicResultContainer(firstRule, secondRule);
 										ExecutorService executor = Executors.newSingleThreadExecutor();
 										try {
 											executor.submit(new CalculateAtomicCpaTask(resultKeeper)).get(15, TimeUnit.MINUTES);
@@ -433,7 +423,7 @@ public class RefactoringRunner_WithPullback {
 										
 										List<ConflictAtom> atomicCoreCpaConflictAtoms = resultKeeper.getConflictAtoms();
 										List<Span> atomicCoreCpaCandidates = resultKeeper.getCandidates();
-										Set<Span> atomicCoreCpaOverallReasons = resultKeeper.getOverallReasons();
+										Set<Span> atomicCoreMinimalConflictReasons = resultKeeper.getMinimalConflictReasons();
 										
 										long atomicEndTime = System.currentTimeMillis();
 										long atomiRunTime = atomicEndTime - atomicStartTime;
@@ -444,7 +434,7 @@ public class RefactoringRunner_WithPullback {
 //								System.out.println("executed: " + ruleCombination + " del-use-confl: " + atomicCoreCpaConflictAtoms.size()
 //								+ " in " + atomiRunTime + " ms");
 //								numberOfAnalysis++;
-//								System.err.println("number of analysis: " + numberOfAnalysis);
+//								System.err.println("number of analysisDuration: " + numberOfAnalysis);
 //								// shortResults.add(computeConflictAtoms.size()+" conflicts in "+ruleCombination);
 //								numberOfConflictsOverall += atomicCoreCpaConflictAtoms.size();
 //								
@@ -491,7 +481,7 @@ public class RefactoringRunner_WithPullback {
 										// <- METRICS
 										if(!canceled)
 											minimalReasonLogger.addData(firstRule, originalRuleOfRule2, runTimesOfRuleCombination.toString(),
-													String.valueOf(atomicCoreCpaOverallReasons.size()));
+													String.valueOf(atomicCoreMinimalConflictReasons.size()));
 												
 												// }
 									}

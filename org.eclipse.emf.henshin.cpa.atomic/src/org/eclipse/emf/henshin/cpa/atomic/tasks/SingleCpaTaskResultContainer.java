@@ -1,4 +1,4 @@
-package org.eclipse.emf.henshin.cpa.atomic.runner;
+package org.eclipse.emf.henshin.cpa.atomic.tasks;
 
 import java.util.List;
 
@@ -6,17 +6,17 @@ import org.eclipse.emf.henshin.cpa.CPAOptions;
 import org.eclipse.emf.henshin.cpa.result.CPAResult;
 import org.eclipse.emf.henshin.model.Rule;
 
-public class ResultKeeper {
+public class SingleCpaTaskResultContainer {
 	
 	List<Rule> firstRuleList;
 	List<Rule> secondRuleList; 
 	CPAOptions normalOptions;
 	
-	CPAResult normalResult;
+	CPAResult cpaResult;
 	
-	long normalRunTime;
+	long analysisDuration;
 
-	public ResultKeeper(List<Rule> firstRuleList, List<Rule> secondRuleList, CPAOptions normalOptions) {
+	public SingleCpaTaskResultContainer(List<Rule> firstRuleList, List<Rule> secondRuleList, CPAOptions normalOptions) {
 		this.firstRuleList = firstRuleList;
 		this.secondRuleList = secondRuleList;
 		this.normalOptions = normalOptions;
@@ -33,25 +33,30 @@ public class ResultKeeper {
 		return secondRuleList;
 	}
 
-	public CPAOptions getNormalOptions() {
+	public CPAOptions getCpaOptions() {
 		// TODO Auto-generated method stub
 		return normalOptions;
 	}
 
-	public void addResult(CPAResult normalResult) {
-		this.normalResult = normalResult;
-	}
+//	public void addResult(CPAResult normalResult) {
+//		this.cpaResult = normalResult;
+//	}
 
 	public CPAResult getResult() {
-		return normalResult;
+		return cpaResult;
 	}
 
-	public void setCalculationTime(long normalRunTime) {
-		this.normalRunTime = normalRunTime;
+//	public void setCalculationTime(long conflictAtomRunTime) {
+//		this.analysisDuration = conflictAtomRunTime;
+//	}
+
+	public long getAnalysisDuration() {
+		return analysisDuration;
 	}
 
-	public long getNormalRunTime() {
-		return normalRunTime;
+	public void setResult(CPAResult cpaResult, long analysisDuration) {
+		this.cpaResult = cpaResult;
+		this.analysisDuration = analysisDuration;
 	}
 
 }

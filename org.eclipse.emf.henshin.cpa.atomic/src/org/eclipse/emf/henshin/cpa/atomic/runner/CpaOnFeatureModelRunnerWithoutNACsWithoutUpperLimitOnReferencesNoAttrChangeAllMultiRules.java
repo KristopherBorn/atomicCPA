@@ -27,8 +27,6 @@ public class CpaOnFeatureModelRunnerWithoutNACsWithoutUpperLimitOnReferencesNoAt
 
 	public static void main(String args[]){
 		System.out.println("test");
-		
-		
 		FeatureModelPackage.eINSTANCE.eClass();
 
 		Resource.Factory.Registry reg = Resource.Factory.Registry.INSTANCE;
@@ -41,20 +39,6 @@ public class CpaOnFeatureModelRunnerWithoutNACsWithoutUpperLimitOnReferencesNoAt
 				new EcoreResourceFactoryImpl());
 		
 		List<String> deactivatedRules = new LinkedList<String>();
-//		deactivatedRules.add("Refactoring_1-4"); // bringt ähnlich gute ERgebnisse wie die anderen Refactorings, ist daher also bei Bedarf verzichtbar
-//		deactivatedRules.add("Refactoring_1-9"); // most likely DEADLOCK in Atmoic CPA!
-//		deactivatedRules.add("deleteGroup_IN_FeatureModel"); // most likely DEADLOCK in Atmoic CPA!
-//		deactivatedRules.add("Generalization_2-1"); // most likely DEADLOCK in Atmoic CPA!
-//		deactivatedRules.add("Generalization_2-2"); // most likely DEADLOCK in Atmoic CPA!
-//		deactivatedRules.add("Specialization_3-1"); // most likely DEADLOCK in Atmoic CPA!
-//		deactivatedRules.add("PushDownGroup"); // most likely DEADLOCK in Atmoic CPA!
-
-//		deactivatedRules.add("Specialization_3-6"); // Ram läuft voll.
-		
-//		Set<String> limitedSetOfRulesByRuleNames = new HashSet<String>();
-//		limitedSetOfRulesByRuleNames.add("Generalization_2-1");
-//		limitedSetOfRulesByRuleNames.add("Generalization_2-1_");
-		
 		final File f = new File(Runner.class.getProtectionDomain().getCodeSource().getLocation().getPath());
 		String filePath = f.toString();
 
@@ -66,7 +50,7 @@ public class CpaOnFeatureModelRunnerWithoutNACsWithoutUpperLimitOnReferencesNoAt
 		Runner runner = new Runner();
 		runner.setNoApplicationConditions(true);
 		runner.setNoMultirules(true);
-		runner.setAnalysisKinds(true, true, true);
+		runner.setAnalysisKinds(false, false, false, false, true, false);
 //		runner.limitSetOfRulesByRuleNames(limitedSetOfRulesByRuleNames);
 		runner.run(fullSubDirectoryPath, deactivatedRules);
 	}

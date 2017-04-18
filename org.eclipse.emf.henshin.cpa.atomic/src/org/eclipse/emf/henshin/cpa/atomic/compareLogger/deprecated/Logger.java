@@ -1,4 +1,4 @@
-package org.eclipse.emf.henshin.cpa.atomic.runner;
+package org.eclipse.emf.henshin.cpa.atomic.compareLogger.deprecated;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -8,9 +8,17 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.henshin.cpa.atomic.MinimalConflict;
+import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.result.CPAResult;
+import org.eclipse.emf.henshin.cpa.result.CriticalPair;
 import org.eclipse.emf.henshin.model.Action;
 import org.eclipse.emf.henshin.model.Edge;
 import org.eclipse.emf.henshin.model.Node;
@@ -22,7 +30,7 @@ public class Logger {
 
 	private static DateFormat dateFormat = new SimpleDateFormat("yy_MM_dd-HHmmss");
 	
-	// access: runtimeResults[row][column] - reihe - Spalte
+	// access: analysisDurations[row][column] - reihe - Spalte
 	String[][] runtimeResults;
 	String[][] numberOfDeleteUseConflicts;
 	
@@ -36,6 +44,12 @@ public class Logger {
 	String totalRunTimes;
 	String totalResults;
 	
+	// das gehört nciht in die Logger Klasse!
+//	CPAResult normalCpaResults;
+//	CPAResult essentialCpaResults;
+//	
+//	List<MinimalConflict> minimalConflicts;
+	
 	
 	public void init(int numberOfRules){
 		
@@ -46,6 +60,11 @@ public class Logger {
 		rowPositionOfRule = new HashMap<Rule, Integer>();
 		columnPositionOfRule = new HashMap<Rule, Integer>();
 		this.numberOfRules = numberOfRules+1;
+		
+		// das gehört nciht in die Logger Klasse!
+//		normalCpaResults = new CPAResult();
+//		essentialCpaResults = new CPAResult();
+//		minimalConflicts = new LinkedList<MinimalConflict>();
 	}
 	
 	public void setAnalysisKinds(boolean normal, boolean essential, boolean atomic){
@@ -203,32 +222,58 @@ public class Logger {
 		}
 	}
 
-	public void addRunTimes(long totalNormalRuntime, long totalEssentialRuntime, long totalAtomicRuntime) {
-		StringBuffer sb = new StringBuffer();
-		sb.append("Total run times [ms]- normal CPA: ");
-		sb.append(totalNormalRuntime);
-		sb.append(" essential CPA: ");
-		sb.append(totalEssentialRuntime);
-		sb.append(" atomic CPA: ");
-		sb.append(totalAtomicRuntime);
-		totalRunTimes = sb.toString();
-	}
+	// (14.04.2017) Scheint DEPRECATED zu sein. Wird nicht verwendet
+//	public void addRunTimes(long totalNormalRuntime, long totalEssentialRuntime, long totalAtomicRuntime) {
+//		StringBuffer sb = new StringBuffer();
+//		sb.append("Total run times [ms]- normal CPA: ");
+//		sb.append(totalNormalRuntime);
+//		sb.append(" essential CPA: ");
+//		sb.append(totalEssentialRuntime);
+//		sb.append(" atomic CPA: ");
+//		sb.append(totalAtomicRuntime);
+//		totalRunTimes = sb.toString();
+//	}
 
-	public void addTotalResults(int totalNumberOfNormalCPs, int totalNumberOfEssentialCPs, int totalNumberOfAtomicCPs,
-			int totalNumberOfConflictAtomCandidates, int totalNumberOfMinimalConflictReasons) {
-		StringBuffer sb = new StringBuffer();
-		sb.append("Total amount of rsults -");
-		sb.append(" normal CPs: ");
-		sb.append(totalNumberOfNormalCPs);
-		sb.append(" essential CPs: ");
-		sb.append(totalNumberOfEssentialCPs);
-		sb.append(" conflict atoms: ");
-		sb.append(totalNumberOfAtomicCPs);
-		sb.append(" conflictAtomCandidates: ");
-		sb.append(totalNumberOfConflictAtomCandidates);
-		sb.append(" minimalConflictReasons: ");
-		sb.append(totalNumberOfMinimalConflictReasons);
-		totalResults = sb.toString();
-	}
+	
+	// (14.04.2017) Scheint DEPRECATED zu sein. Wird nicht verwendet
+//	public void addTotalResults(int totalNumberOfNormalCPs, int totalNumberOfEssentialCPs, int totalNumberOfAtomicCPs,
+//			int totalNumberOfConflictAtomCandidates, int totalNumberOfMinimalConflictReasons) {
+//		StringBuffer sb = new StringBuffer();
+//		sb.append("Total amount of results -");
+//		sb.append(" normal CPs: ");
+//		sb.append(totalNumberOfNormalCPs);
+//		sb.append(" essential CPs: ");
+//		sb.append(totalNumberOfEssentialCPs);
+//		sb.append(" conflict atoms: ");
+//		sb.append(totalNumberOfAtomicCPs);
+//		sb.append(" conflictAtomCandidates: ");
+//		sb.append(totalNumberOfConflictAtomCandidates);
+//		sb.append(" minimalConflictReasons: ");
+//		sb.append(totalNumberOfMinimalConflictReasons);
+//		totalResults = sb.toString();
+//	}
+
+	
+	// das gehört nicht in die Logger Klasse!
+//	public void addNormalCpaResult(CPAResult cpaResult) {
+//		for(CriticalPair cp : cpaResult.getCriticalPairs()){
+//			normalCpaResults.addResult(cp); //TODO: introduce a "addAll" method for CriticalPairs in the CPAResult class. 
+//		}		
+//	}
+//
+//	public void addEssentialCpaResult(CPAResult essentialResult) {
+//		for(CriticalPair cp : essentialResult.getCriticalPairs()){
+//			essentialCpaResults.addResult(cp); //TODO: introduce a "addAll" method for CriticalPairs in the CPAResult class. 
+//		}		
+//	}
+//
+//	public void addCoreOfConflictsResult(Rule firstRule, Rule originalRuleOfRule2, List<ConflictAtom> conflictAtoms,
+//			List<Span> conflictAtomCandidates, Set<Span> minimalConflictReasons) {
+//		for(Span minimalConflictReason : minimalConflictReasons){
+//			//TODO(11.04.2017): es sollten nur die relevanten 'conflictAtoms' und 'conflictAtomCandidates' zum 'minimalConflictReason' übergeben werden. Wie lassen sich diese abrufen/identifizieren???  
+//			MinimalConflict minimalConflict = new MinimalConflict(firstRule, originalRuleOfRule2, minimalConflictReason, conflictAtoms, conflictAtomCandidates);			
+//			minimalConflicts.add(minimalConflict);
+//		}
+//	}
 	
 }

@@ -41,7 +41,7 @@ public class ComputeCandidatesTest {
 		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 		
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeCandidates(decapsulateAttributeRule, pullUpEncapsulatedAttributeRule);
+		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeRule, pullUpEncapsulatedAttributeRule);
 				
 		assertEquals(5, conflictAtomCandidates.size());
 		

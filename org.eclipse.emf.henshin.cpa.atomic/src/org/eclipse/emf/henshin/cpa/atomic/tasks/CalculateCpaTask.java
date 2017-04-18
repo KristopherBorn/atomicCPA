@@ -1,4 +1,4 @@
-package org.eclipse.emf.henshin.cpa.atomic.runner;
+package org.eclipse.emf.henshin.cpa.atomic.tasks;
 
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -6,75 +6,69 @@ import java.util.concurrent.Callable;
 import org.eclipse.emf.henshin.cpa.CPAOptions;
 import org.eclipse.emf.henshin.cpa.CpaByAGG;
 import org.eclipse.emf.henshin.cpa.ICriticalPairAnalysis;
-import org.eclipse.emf.henshin.cpa.UnsupportedRuleException;
 import org.eclipse.emf.henshin.cpa.result.CPAResult;
 import org.eclipse.emf.henshin.model.Rule;
 
 public class CalculateCpaTask implements Callable<CPAResult> {
+	
+	public enum AnalysisKind{
+		CONFLICT,
+		DEPENDENCY
+	}
 
 	List<Rule> firstRuleList;
 	List<Rule> secondRuleList; 
-	CPAOptions normalOptions;
+	CPAOptions cpaOptions;
 	
-	ICriticalPairAnalysis normalCpa;
+	AnalysisKind analysisKind;
+	
+	ICriticalPairAnalysis criticalPairAnalysis;
 	
 	long normalRunTime;
 	
-	ResultKeeper detector;
+	SingleCpaTaskResultContainer taskResultContainer;
 	
-	public CalculateCpaTask(ResultKeeper detector) {
+	public CalculateCpaTask(SingleCpaTaskResultContainer taskResultContainer, AnalysisKind analysisKind) {
 		
-		this.detector = detector;
+		this.taskResultContainer = taskResultContainer;
+		this.analysisKind = analysisKind;
 		
-		this.firstRuleList = detector.getFirstRuleList();
-		this.secondRuleList = detector.getSecondRuleList();
-		this.normalOptions = detector.getNormalOptions();	
+		this.firstRuleList = taskResultContainer.getFirstRuleList();
+		this.secondRuleList = taskResultContainer.getSecondRuleList();
+		this.cpaOptions = taskResultContainer.getCpaOptions();	
 		
 
 		// normal CPA setup
-		normalCpa = new CpaByAGG();
-		CPAOptions normalOptions = new CPAOptions();
-		CPAResult normalResult = null;
-				
-//		long normalStartTime = System.currentTimeMillis();
-//		try {
-//			normalCpa.init(firstRuleList, secondRuleList, normalOptions);
-//			normalResult = normalCpa.runConflictAnalysis();
-//		} catch (UnsupportedRuleException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//		
-//
-//		long normalEndTime = System.currentTimeMillis();
-//		long normalRunTime = normalEndTime - normalStartTime;
-		
-		// TODO Auto-generated constructor stub
+		criticalPairAnalysis = new CpaByAGG();
 	}
 
 	@Override
 	public CPAResult call() throws Exception {
-		System.out.println("CALLL!");
+//		System.out.println("CALLL!");
 
-		CPAResult normalResult = null;
+		CPAResult cpaResult = null;
 
 		long normalStartTime = System.currentTimeMillis();
 		try {
-			normalCpa.init(firstRuleList, secondRuleList, normalOptions);
-			normalResult = normalCpa.runConflictAnalysis();
+			criticalPairAnalysis.init(firstRuleList, secondRuleList, cpaOptions);
+			if(analysisKind == AnalysisKind.CONFLICT){
+				cpaResult = criticalPairAnalysis.runConflictAnalysis();
+			}else {
+
+				cpaResult = criticalPairAnalysis.runDependencyAnalysis();
+			}	
 		} catch (Exception /*UnsupportedRuleException*/ e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-
-		long normalEndTime = System.currentTimeMillis();
-		normalRunTime = normalEndTime - normalStartTime;
+		long cpaEndTime = System.currentTimeMillis();
+		normalRunTime = cpaEndTime - normalStartTime;
 		
-		detector.addResult(normalResult);
-		detector.setCalculationTime(normalRunTime);
+		//TODO: Fehlerbehandlung für den Fall einer Exception einführen! 
+		taskResultContainer.setResult(cpaResult, normalRunTime);
 		
-		return normalResult;
+		return cpaResult;
 	}
 
 }

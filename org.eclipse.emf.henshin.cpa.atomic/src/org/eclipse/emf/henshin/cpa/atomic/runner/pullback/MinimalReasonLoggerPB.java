@@ -11,7 +11,7 @@ import java.util.HashSet;
 import java.util.Map;
 
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.henshin.cpa.atomic.runner.Logger;
+import org.eclipse.emf.henshin.cpa.atomic.compareLogger.deprecated.Logger;
 import org.eclipse.emf.henshin.model.Action;
 import org.eclipse.emf.henshin.model.Edge;
 import org.eclipse.emf.henshin.model.Node;
@@ -23,7 +23,7 @@ public class MinimalReasonLoggerPB extends LoggerPB{
 
 	private static DateFormat dateFormat = new SimpleDateFormat("yy_MM_dd-HHmmss");
 	
-	// access: runtimeResults[row][column] - reihe - Spalte
+	// access: analysisDurations[row][column] - reihe - Spalte
 	String[][] runtimeResults;
 	String[][] numberOfDeleteUseConflicts;
 	

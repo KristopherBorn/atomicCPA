@@ -85,7 +85,7 @@ public class IntegrationTest {
 	@Test
 	public void conflictPartCandidates_decapsulateAttr_pullUpEncAttr_Test() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<Span> computedConflictPartCandidates = atomicCoreCPA.computeCandidates(decapsulateAttributeRule,
+		List<Span> computedConflictPartCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeRule,
 			pullUpEncapsulatedAttributeRule);
 	assertEquals(5, computedConflictPartCandidates.size());
 	}
@@ -94,7 +94,7 @@ public class IntegrationTest {
 	@Test
 	public void conflictPartCandidates_decapsulateAttr_decapsulateAttr() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<Span> computedConflictPartCandidates = atomicCoreCPA.computeCandidates(decapsulateAttributeRule,
+		List<Span> computedConflictPartCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeRule,
 				decapsulateAttributeRule);
 	assertEquals(5, computedConflictPartCandidates.size());
 	}
@@ -103,7 +103,7 @@ public class IntegrationTest {
 	@Test
 	public void conflictPartCandidates_pullUpEncAttr_decapsulateAttr() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<Span> computedConflictPartCandidates = atomicCoreCPA.computeCandidates(pullUpEncapsulatedAttributeRule,
+		List<Span> computedConflictPartCandidates = atomicCoreCPA.computeAtomCandidates(pullUpEncapsulatedAttributeRule,
 				decapsulateAttributeRule);
 	assertEquals(5, computedConflictPartCandidates.size());
 	}
@@ -112,7 +112,7 @@ public class IntegrationTest {
 	@Test
 	public void conflictPartCandidates_pullUpEncAttr_pullUpEncAttr() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<Span> computedConflictPartCandidates = atomicCoreCPA.computeCandidates(pullUpEncapsulatedAttributeRule,
+		List<Span> computedConflictPartCandidates = atomicCoreCPA.computeAtomCandidates(pullUpEncapsulatedAttributeRule,
 				pullUpEncapsulatedAttributeRule);
 	assertEquals(5, computedConflictPartCandidates.size());
 	}
@@ -123,11 +123,11 @@ public class IntegrationTest {
 	@Test
 	public void conflictMinReason_decapsulateAttr_pullUpEncAttr_Test() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeCandidates(decapsulateAttributeRule,
+		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeRule,
 				pullUpEncapsulatedAttributeRule);
 		Set<Span> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
-			atomicCoreCPA.computeMinReasons(decapsulateAttributeRule, pullUpEncapsulatedAttributeRule, candidate,
+			atomicCoreCPA.computeMinimalConflictReasons(decapsulateAttributeRule, pullUpEncapsulatedAttributeRule, candidate,
 					reasons);
 		}
 		assertEquals(2, reasons.size());
@@ -139,11 +139,11 @@ public class IntegrationTest {
 	@Test
 	public void conflictMinReason_decapsulateAttr_decapsulateAttr() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeCandidates(decapsulateAttributeRule,
+		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeRule,
 				decapsulateAttributeRule);
 		Set<Span> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
-			atomicCoreCPA.computeMinReasons(decapsulateAttributeRule, decapsulateAttributeRule, candidate,
+			atomicCoreCPA.computeMinimalConflictReasons(decapsulateAttributeRule, decapsulateAttributeRule, candidate,
 					reasons);
 		}
 		assertEquals(2, reasons.size());
@@ -158,11 +158,11 @@ public class IntegrationTest {
 	@Test
 	public void conflictMinReason_pullUpEncAttr_decapsulateAttr() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeCandidates(pullUpEncapsulatedAttributeRule,
+		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pullUpEncapsulatedAttributeRule,
 				decapsulateAttributeRule);
 		Set<Span> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
-			atomicCoreCPA.computeMinReasons(pullUpEncapsulatedAttributeRule, decapsulateAttributeRule, candidate,
+			atomicCoreCPA.computeMinimalConflictReasons(pullUpEncapsulatedAttributeRule, decapsulateAttributeRule, candidate,
 					reasons);
 		}
 		assertEquals(5, reasons.size());
@@ -177,11 +177,11 @@ public class IntegrationTest {
 	@Test
 	public void conflictMinReason_pullUpEncAttr_pullUpEncAttr() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeCandidates(pullUpEncapsulatedAttributeRule,
+		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pullUpEncapsulatedAttributeRule,
 				pullUpEncapsulatedAttributeRule);
 		Set<Span> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
-			atomicCoreCPA.computeMinReasons(pullUpEncapsulatedAttributeRule, pullUpEncapsulatedAttributeRule, candidate,
+			atomicCoreCPA.computeMinimalConflictReasons(pullUpEncapsulatedAttributeRule, pullUpEncapsulatedAttributeRule, candidate,
 					reasons);
 		}
 		assertEquals(5, reasons.size());

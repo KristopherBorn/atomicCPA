@@ -86,13 +86,13 @@ public class RobustnessTest {
 		boolean illeagalArgumentExceptionThrownOnRule1 = false;
 		boolean illeagalArgumentExceptionThrownOnRule2 = false;
 		try {					
-			atomicCoreCPA.computeCandidates(null,
+			atomicCoreCPA.computeAtomCandidates(null,
 				pullUpEncapsulatedAttributeRule);
 		} catch (IllegalArgumentException e) {
 			illeagalArgumentExceptionThrownOnRule1 = true;
 		}
 		try {	
-			atomicCoreCPA.computeCandidates(decapsulateAttributeRule,
+			atomicCoreCPA.computeAtomCandidates(decapsulateAttributeRule,
 					null);
 		} catch (IllegalArgumentException e) {
 			illeagalArgumentExceptionThrownOnRule2 = true;
@@ -108,19 +108,19 @@ public class RobustnessTest {
 		boolean illeagalArgumentExceptionThrownOnRule1 = false;
 		boolean illeagalArgumentExceptionThrownOnRule2 = false;
 		
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeCandidates(pullUpEncapsulatedAttributeRule,
+		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pullUpEncapsulatedAttributeRule,
 				decapsulateAttributeRule);
 		Set<Span> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
 			try {		
-				atomicCoreCPA.computeMinReasons(null, decapsulateAttributeRule, candidate,
+				atomicCoreCPA.computeMinimalConflictReasons(null, decapsulateAttributeRule, candidate,
 						reasons);			 
 			} catch (IllegalArgumentException e) {
 				illeagalArgumentExceptionThrownOnRule1 = true;
 			}
 			try {	
 
-				atomicCoreCPA.computeMinReasons(pullUpEncapsulatedAttributeRule, null, candidate,
+				atomicCoreCPA.computeMinimalConflictReasons(pullUpEncapsulatedAttributeRule, null, candidate,
 						reasons);
 			} catch (IllegalArgumentException e) {
 				illeagalArgumentExceptionThrownOnRule2 = true;

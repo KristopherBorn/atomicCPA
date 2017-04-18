@@ -41,11 +41,11 @@ public class CpaOnRefactoringWithoutUpperLimitRunner extends Runner{
 		
 		final File f = new File(Runner.class.getProtectionDomain().getCodeSource().getLocation().getPath());
 		String filePath = f.toString();
-		// String shortendPath = filePath.replaceAll("org.eclipse.emf.henshin.cpa.atomic\\bin", "");
+		// String shortendPath = filePath.replaceAll("org.eclipse.emf.henshin.cpa.atomic.main\\bin", "");
 		String projectPath = filePath.replaceAll("bin", "");
 		// String shortendPath0 = filePath.replaceAll("bin", "");
 		// String shortendPath1 = shortendPath0.substring(0, shortendPath0.length()-1);
-		// String projectPath = shortendPath1.replaceAll("org.eclipse.emf.henshin.cpa.atomic", "");
+		// String projectPath = shortendPath1.replaceAll("org.eclipse.emf.henshin.cpa.atomic.main", "");
 		// String shortendPath = filePath.replaceAll("bin", "");
 		System.out.println(projectPath);
 		String subDirectoryPath = "testData\\refactoringWithoutUpperLimitsOnReferences\\";

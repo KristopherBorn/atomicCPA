@@ -15,14 +15,13 @@ import org.eclipse.emf.ecore.util.EcoreUtil.Copier;
 import org.eclipse.emf.henshin.cpa.CPAOptions;
 import org.eclipse.emf.henshin.cpa.CpaByAGG;
 import org.eclipse.emf.henshin.cpa.ICriticalPairAnalysis;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
-import org.eclipse.emf.henshin.cpa.atomic.runner.AtomicResultKeeper;
-import org.eclipse.emf.henshin.cpa.atomic.runner.CalculateAtomicCpaTask;
-import org.eclipse.emf.henshin.cpa.atomic.runner.CalculateCpaTask;
-import org.eclipse.emf.henshin.cpa.atomic.runner.CalculateEssentialCpaTask;
-import org.eclipse.emf.henshin.cpa.atomic.runner.ResultKeeper;
+import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA;
+import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.tasks.AtomicResultContainer;
+import org.eclipse.emf.henshin.cpa.atomic.tasks.CalculateAtomicCpaTask;
+import org.eclipse.emf.henshin.cpa.atomic.tasks.CalculateCpaTask;
+import org.eclipse.emf.henshin.cpa.atomic.tasks.SingleCpaTaskResultContainer;
 import org.eclipse.emf.henshin.cpa.result.CPAResult;
 import org.eclipse.emf.henshin.cpa.result.Conflict;
 import org.eclipse.emf.henshin.cpa.result.ConflictKind;
@@ -115,7 +114,7 @@ public class Runner_WithPullback {
 
 //		logger.init(numberOfAddedRules);
 //		logger.setAddDetailsOnRuleName(true);
-//		logger.setAnalysisKinds(runNormalCPA, runEssentialCPA, runAtomicAnalysis);
+//		logger.setAnalysisKinds(runNormalCPA, runEssentialConflictAnalysis, runAtomicConflictAnalysis);
 		for(LoggerPB loggerPB : loggers){
 			loggerPB.init(numberOfAddedRules);
 			loggerPB.setAddDetailsOnRuleName(true);
@@ -228,7 +227,7 @@ public class Runner_WithPullback {
 										secondRuleList.add(secondRule);
 										CPAResult normalResult = null;
 										
-//								CriticalPair critPair = normalResult.getCriticalPairs().get(0);
+//								CriticalPair critPair = cpaResult.getCriticalPairs().get(0);
 //								Conflict confl = (Conflict) critPair;
 //								confl.getFirstRule();
 //								confl.getFirstRule();
@@ -237,10 +236,10 @@ public class Runner_WithPullback {
 //								confl.getMatch2();
 										
 //								
-										ResultKeeper resultKeeper = new ResultKeeper(firstRuleList, secondRuleList, normalOptions);
+										SingleCpaTaskResultContainer singleCpaTaskResultContainer = new SingleCpaTaskResultContainer(firstRuleList, secondRuleList, normalOptions);
 										ExecutorService executor = Executors.newSingleThreadExecutor();
 										try {
-											executor.submit(new CalculateCpaTask(resultKeeper)).get(10, TimeUnit.SECONDS);
+											executor.submit(new CalculateCpaTask(singleCpaTaskResultContainer)).get(10, TimeUnit.SECONDS);
 										} catch (NullPointerException | InterruptedException | ExecutionException e) {
 											System.err.println("Timeout!");
 											executor.shutdown();
@@ -254,9 +253,9 @@ public class Runner_WithPullback {
 										}
 										
 										executor.shutdown();
-										normalResult = resultKeeper.getResult();
+										normalResult = singleCpaTaskResultContainer.getResult();
 										
-										long normalRunTime = resultKeeper.getNormalRunTime();
+										long normalRunTime = singleCpaTaskResultContainer.getAnalysisDuration();
 										
 										totalNormalRuntime += normalRunTime;
 										
@@ -274,7 +273,7 @@ public class Runner_WithPullback {
 											
 //											get with the pushout here!
 //											- verfügbare "matches" untersuchen!!!
-//											CriticalPair critPair = normalResult.getCriticalPairs().get(0);
+//											CriticalPair critPair = cpaResult.getCriticalPairs().get(0);
 											int sumOfElementsInPullback = 0;
 											for(CriticalPair critPair : filteredDeleteUseConflicts){
 												Conflict confl = (Conflict) critPair;
@@ -322,10 +321,10 @@ public class Runner_WithPullback {
 										
 
 										
-										ResultKeeper resultKeeper = new ResultKeeper(firstRuleList, secondRuleList, essentialOptions);
+										SingleCpaTaskResultContainer singleCpaTaskResultContainer = new SingleCpaTaskResultContainer(firstRuleList, secondRuleList, essentialOptions);
 										ExecutorService executor = Executors.newSingleThreadExecutor();
 										try {
-											executor.submit(new CalculateEssentialCpaTask(resultKeeper)).get(10, TimeUnit.SECONDS);
+											executor.submit(new CalculateCpaTask(singleCpaTaskResultContainer)).get(10, TimeUnit.SECONDS);
 										} catch (NullPointerException | InterruptedException | ExecutionException e) {
 											System.err.println("Timeout!");
 											executor.shutdown();
@@ -340,7 +339,7 @@ public class Runner_WithPullback {
 										long essentialEndTime = System.currentTimeMillis();
 										
 										executor.shutdown();
-										essentialResult = resultKeeper.getResult();
+										essentialResult = singleCpaTaskResultContainer.getResult();
 										
 										
 										long essentialRunTime = essentialEndTime - essentialStartTime;
@@ -365,7 +364,7 @@ public class Runner_WithPullback {
 											
 //											get with the pushout here!
 //											- verfügbare "matches" untersuchen!!!
-//											CriticalPair critPair = normalResult.getCriticalPairs().get(0);
+//											CriticalPair critPair = cpaResult.getCriticalPairs().get(0);
 											int sumOfElementsInPullback = 0;
 											for(CriticalPair critPair : filteredDeleteUseConflicts){
 												Conflict confl = (Conflict) critPair;
@@ -411,7 +410,7 @@ public class Runner_WithPullback {
 										
 										
 										
-										AtomicResultKeeper resultKeeper = new AtomicResultKeeper(firstRule, secondRule);
+										AtomicResultContainer resultKeeper = new AtomicResultContainer(firstRule, secondRule);
 										ExecutorService executor = Executors.newSingleThreadExecutor();
 										try {
 											executor.submit(new CalculateAtomicCpaTask(resultKeeper)).get(15, TimeUnit.MINUTES);
@@ -428,7 +427,7 @@ public class Runner_WithPullback {
 										
 										List<ConflictAtom> atomicCoreCpaConflictAtoms = resultKeeper.getConflictAtoms();
 										List<Span> atomicCoreCpaCandidates = resultKeeper.getCandidates();
-										Set<Span> atomicCoreCpaOverallReasons = resultKeeper.getOverallReasons();
+										Set<Span> atomicCoreMinimalConflictReasons = resultKeeper.getMinimalConflictReasons();
 										
 										long atomicEndTime = System.currentTimeMillis();
 										long atomiRunTime = atomicEndTime - atomicStartTime;
@@ -439,7 +438,7 @@ public class Runner_WithPullback {
 //								System.out.println("executed: " + ruleCombination + " del-use-confl: " + atomicCoreCpaConflictAtoms.size()
 //								+ " in " + atomiRunTime + " ms");
 //								numberOfAnalysis++;
-//								System.err.println("number of analysis: " + numberOfAnalysis);
+//								System.err.println("number of analysisDuration: " + numberOfAnalysis);
 //								// shortResults.add(computeConflictAtoms.size()+" conflicts in "+ruleCombination);
 //								numberOfConflictsOverall += atomicCoreCpaConflictAtoms.size();
 //								
@@ -486,7 +485,7 @@ public class Runner_WithPullback {
 										// <- METRICS
 										if(!canceled)
 											minimalReasonLogger.addData(firstRule, originalRuleOfRule2, runTimesOfRuleCombination.toString(),
-													String.valueOf(atomicCoreCpaOverallReasons.size()));
+													String.valueOf(atomicCoreMinimalConflictReasons.size()));
 												
 												// }
 									}

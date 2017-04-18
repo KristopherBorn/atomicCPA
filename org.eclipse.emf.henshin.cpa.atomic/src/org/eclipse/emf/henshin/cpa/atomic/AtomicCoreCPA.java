@@ -1,11 +1,14 @@
 package org.eclipse.emf.henshin.cpa.atomic;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Predicate;
 
 import org.eclipse.emf.common.util.BasicEList;
@@ -16,6 +19,9 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.emf.ecore.util.EcoreUtil.Copier;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+//import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA;
+//import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA.Span;
 import org.eclipse.emf.henshin.model.Action;
 import org.eclipse.emf.henshin.model.Edge;
 import org.eclipse.emf.henshin.model.Graph;
@@ -26,6 +32,7 @@ import org.eclipse.emf.henshin.model.Node;
 import org.eclipse.emf.henshin.model.Rule;
 import org.eclipse.emf.henshin.model.impl.EdgeImpl;
 import org.eclipse.emf.henshin.model.impl.HenshinFactoryImpl;
+import org.eclipse.emf.henshin.model.impl.MappingListImpl;
 
 import de.imotep.featuremodel.variability.metamodel.FeatureModel.FeatureModelPackage;
 
@@ -47,7 +54,7 @@ public class AtomicCoreCPA {
 	/**
 	 * @return the reasons
 	 */
-	public Set<Span> getOverallReasons() {
+	public Set<Span> getMinimalConflictReasons() {
 		return overallReasons;
 	}
 
@@ -59,19 +66,19 @@ public class AtomicCoreCPA {
 		checkNull(rule2, "rule2");
 
 		List<ConflictAtom> result = new LinkedList<ConflictAtom>();
-		candidates = computeCandidates(rule1, rule2);
+		candidates = computeAtomCandidates(rule1, rule2);
 		overallReasons = new HashSet<>();
 		for (Span candidate : candidates) {
 
 			Set<Span> reasons = new HashSet<>();//
-			computeMinReasons(rule1, rule2, candidate, reasons);
+			computeMinimalConflictReasons(rule1, rule2, candidate, reasons);
 
-			if (rule1.getName().contains("Feature_FROM_Feature_children_TO_Feature_Fea")
-					&& rule2.getName().contains("factoring_1-3")) {
-				System.out.println("maybe here begins the mistake!");
-			}
+//			if (rule1.getName().contains("Feature_FROM_Feature_children_TO_Feature_Fea")
+//					&& rule2.getName().contains("factoring_1-3")) {
+//				System.out.println("maybe here begins the mistake!");
+//			}
 
-			overallReasons.addAll(reasons); // to know the total amount after the analysis!
+			overallReasons.addAll(reasons); // to know the total amount after the analysisDuration!
 			if (!reasons.isEmpty()) {
 				result.add(new ConflictAtom(candidate, reasons));
 				// TODO: wieso ein Atom die "reasons" benötigt ist mir noch unklar.
@@ -88,7 +95,7 @@ public class AtomicCoreCPA {
 	// - erstellen eines Graph (S1) und der Mappings in rule1 und rule2
 	// Wie programmatisch instanzen des jeweiligen MM erstellen?
 	// Henshins "MappingImpl" Klasse wirklich geeignet? Oder eher MatchImpl?
-	public List<Span> computeCandidates(Rule rule1, Rule rule2) {
+	public List<Span> computeAtomCandidates(Rule rule1, Rule rule2) {
 
 		checkNull(rule1, "rule1");
 		checkNull(rule2, "rule2");
@@ -189,7 +196,7 @@ public class AtomicCoreCPA {
 		return commonNode;
 	}
 
-	public void computeMinReasons(Rule rule1, Rule rule2, Span s1, Set<Span> reasons) {
+	public void computeMinimalConflictReasons(Rule rule1, Rule rule2, Span s1, Set<Span> reasons) {
 		checkNull(rule1, "rule1");
 		checkNull(rule2, "rule2");
 		if (isMinReason(rule1, rule2, s1)) {
@@ -199,7 +206,7 @@ public class AtomicCoreCPA {
 		// is this part of the backtracking?
 		Set<Span> extendedSpans = findExtensions(rule1, rule2, s1, reasons);
 		for (Span extendedSpan : extendedSpans) {
-			computeMinReasons(rule1, rule2, extendedSpan, reasons);
+			computeMinimalConflictReasons(rule1, rule2, extendedSpan, reasons);
 		}
 	}
 
@@ -517,6 +524,13 @@ public class AtomicCoreCPA {
 
 		public String toShortString() {
 			return span.toShortString();
+		}
+
+		/**
+		 * @return the reasons
+		 */
+		public Set<Span> getReasons() {
+			return reasons;
 		}
 
 	}
@@ -849,6 +863,99 @@ public class AtomicCoreCPA {
 		}
 
 	}
+	
+	public class MinimalConflictReason extends ConflictReason {
+
+		public MinimalConflictReason(Span minimalConflictReason) {
+			super(minimalConflictReason);
+		}
+
+		public Set<ModelElement> getDeletionElementsInRule1() {
+			return deletionElementsInRule1;
+		}
+		
+	}
+	
+	public class ConflictReason extends Span {
+		
+		Set<ModelElement> deletionElementsInRule1;
+		Set<MinimalConflictReason> originMCRs;
+		
+		/**
+		 * @return the originMCRs
+		 */
+		public Set<MinimalConflictReason> getOriginMCRs() {
+			return originMCRs;
+		}
+
+		/**
+		 * @return the deletionElementsInRule1
+		 */
+		public Set<ModelElement> getDeletionElementsInRule1() {
+			return deletionElementsInRule1;
+		}
+
+		public ConflictReason(Span minimalConflictReason) {
+			super(minimalConflictReason);
+			if(minimalConflictReason instanceof MinimalConflictReason){
+				MinimalConflictReason mcr = (MinimalConflictReason) minimalConflictReason;
+				this.deletionElementsInRule1 = mcr.getDeletionElementsInRule1();
+				originMCRs = new HashSet<MinimalConflictReason>();
+				originMCRs.add(mcr);
+			}else {
+				// wenn der Konstruktur durch einen super call von der Klasse MinimalConflictReason aufgerufen wurde und 'minimalConflictReason' wirklich vom Typ "Span" ist.
+				this.deletionElementsInRule1 = getDeletionElementsOfSpan(minimalConflictReason);
+			}
+			
+		}
+		
+		public ConflictReason(List<Mapping> mappingsOfNewSpanInRule1, Graph graph1Copy,
+				List<Mapping> mappingsOfNewSpanInRule2, Set<MinimalConflictReason> originMCRs) {
+			super(mappingsOfNewSpanInRule1, graph1Copy, mappingsOfNewSpanInRule2);
+			this.deletionElementsInRule1 = getDeletionElementsOfSpan(this);
+			this.originMCRs = originMCRs;
+		}
+		
+		private Set<ModelElement> getDeletionElementsOfSpan(List<Mapping> mappingsOfSpanInRule1, Graph graph,
+				List<Mapping> mappingsOfSpanInRule2) {
+			Set<ModelElement> deletionElements = new HashSet<ModelElement>();
+			// alle Elemente im Graph des Span müssen geprüft werden, ob es sich dabei um löschende Elemente der ersten Regel handelt!
+			// Kanten im Graph sind (für delete-use) immer löschende Elemente (Das geht aus der Definition der ConflictAtoms und MCR hervor)
+				// dafür ist es schwieriger die Kanten zu identifizieren!
+			// check Nodes to be deletionElements
+			for(Mapping mapping : mappingsOfSpanInRule1){
+				if(mapping.getImage().getAction().getType().equals(Action.Type.DELETE))
+					deletionElements.add(mapping.getImage());
+			}
+			// find all related Edges in Rule1
+			for(Edge egdeInS : graph.getEdges()){
+				Node sourceNodeInS = egdeInS.getSource();
+				Node targetNodeInS = egdeInS.getTarget();
+				Mapping mappingOfSourceInR1 = getMappingIntoRule(mappingsOfSpanInRule1, sourceNodeInS);
+				Node sourceNodeInR1 = mappingOfSourceInR1.getImage();
+				Mapping mappingOfTargetInR1 = getMappingIntoRule(mappingsOfSpanInRule1, targetNodeInS);
+				Node targetNodeInR1 = mappingOfTargetInR1.getImage();
+				Edge associatedEdgeInR1 = sourceNodeInR1.getOutgoing(egdeInS.getType(), targetNodeInR1); //TODO: Vorsicht! hier kann auch null rauskommen, wenn es ein bug ist!
+				if(associatedEdgeInR1 != null && associatedEdgeInR1.getAction().getType().equals(Action.Type.DELETE))
+					deletionElements.add(associatedEdgeInR1);
+			}
+			return deletionElements;
+		}
+		
+		// TODO use "getMappingWithImage(...)" method
+		private Mapping getMappingIntoRule(List<Mapping> mappingsFromSpanInRule, Node originNode) {
+			for (Mapping mapping : mappingsFromSpanInRule) {
+				if (mapping.getOrigin() == originNode)
+					return mapping;
+			}
+			return null;
+		}
+		
+		private Set<ModelElement> getDeletionElementsOfSpan(Span minimalConflictReason) {
+			return getDeletionElementsOfSpan(minimalConflictReason.getMappingsInRule1(), minimalConflictReason.getGraph(), minimalConflictReason.getMappingsInRule2());
+		}
+
+	}
 
 	public PushoutResult newPushoutResult(Rule rule1, Span span, Rule rule2) {
 		return new PushoutResult(rule1, span, rule2);
@@ -1070,4 +1177,256 @@ public class AtomicCoreCPA {
 		return true;
 	}
 
+	
+	//TODO: ist dieser "zweistufige" Ansatz überhaupt gut? (Also die Trennung in die zwei Methoden)
+	public Set<ConflictReason> computeConflictReason(Set<MinimalConflictReason> minimalConflictReasons){
+		Set<ConflictReason> conflictReason = new HashSet<ConflictReason>();
+//		Set<ConflictReason> minimalConflictReasonsInternal = new HashSet<ConflictReason>();
+//		for(Span span : minimalConflictReasons){
+//			ConflictReason cr = new ConflictReason(span);
+//			minimalConflictReasonsInternal.add(cr);
+//		}
+		for(MinimalConflictReason currentMCR : minimalConflictReasons){
+			Set<MinimalConflictReason> remainingMCR = new HashSet<MinimalConflictReason>(minimalConflictReasons);
+			remainingMCR.remove(currentMCR);
+			
+			conflictReason.addAll(computeConflictReasons(currentMCR, remainingMCR));
+		}
+		conflictReason.addAll(minimalConflictReasons); //Die einzelnen MCR sind auch CR. Dementsprechend gilt immer: CR.size() >= MCR.size() korrekt?
+		return conflictReason;
+	}
+	
+	private Set<ConflictReason> computeConflictReasons(ConflictReason currentCR, Set<MinimalConflictReason> combinationMCR){
+		Set<ConflictReason> resultConflictReasons = new HashSet<ConflictReason>(); 
+		Set<ConflictReason> processedMCR = new HashSet<ConflictReason>();
+		for(MinimalConflictReason combinedMCR : combinationMCR){
+			processedMCR.add(combinedMCR);
+				// (17.04.2017) ERKENNTNIS: es dürfen keine MCRs vereinigt werden die auf den gleichen "deletionElements" basieren!
+				if(!crAndMcrHaveCommonDeletionElement(currentCR, combinedMCR)){
+					ConflictReason conflictReason = findCommonNodesAndJoinToNewConflictReason(currentCR, combinedMCR/*, commonNodes*/);
+					if(conflictReason != null)
+						resultConflictReasons.add(conflictReason);
+					
+					//weitere Kombinationen aus neuen ConflictReason mit restlichen MCR bilden:
+					Set<MinimalConflictReason> remainingMCR = new HashSet<MinimalConflictReason>(combinationMCR);
+					remainingMCR.removeAll(processedMCR);
+					resultConflictReasons.addAll(computeConflictReasons(conflictReason, remainingMCR));
+				}
+		}
+		return resultConflictReasons;
+	}
+	
+	// wenn 
+	private boolean crAndMcrHaveCommonDeletionElement(ConflictReason conflictReasonToBeExtended, MinimalConflictReason extendingMinimalConflictReason) {
+		Set<ModelElement> deletionElementsInConflictReason = conflictReasonToBeExtended.getDeletionElementsInRule1();
+		for(ModelElement elementInfMCR : extendingMinimalConflictReason.getDeletionElementsInRule1()){
+			if(deletionElementsInConflictReason.contains(elementInfMCR))
+				return true;
+		}
+		return false;
+	}
+
+	private Span joinToNewSpan(Span currentMCR, Span combinedMCR, Set<List<Node>> commonNodes) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	private ConflictReason findCommonNodesAndJoinToNewConflictReason(ConflictReason span1, ConflictReason span2) {
+		/**
+		 * Wann sind zwei Knoten in 'Spans' gleich? (Also zwei Knoten im Graph des Span)
+		 * Vermutlich wenn:
+		 * 1. Beide Knoten (im Graph) den gleichen Typ haben
+		 * (2. vermutlich, wenn diese den gelichen Namen haben. ABER: dabei kann es sich auch um einen Fehler beim neu benennen handeln)
+		 * 	(UND bei Regeln diekeien Namen für die Nodes einsetzen, oder diese wiederholen kommt es zu Problemen!)
+		 * DAHER:
+		 * 2. Für beide Knoten das Mapping in die erste Regel das gleiche Ziel haben.
+		 * UND:
+		 * 3. Für beide Knoten das Mapping in die zweite Regel das geliche Ziel haben  
+		 */
+		//Ggf. läst sich vom Wissen gebrauch machen, dass sich zwei MCR nur in den nicht-löschenden Knoten überlappen können. IST DAS SO???
+		
+		//TODO: Wenn sich zwei MCRs in drei Knoten überlagern können, gibt es dann verschiedene CRs? Solche die sich in zwei und oslche die sich in drei Kntoen überlagern???
+		
+		// TODO: muss die Zuordnung von MCRs zu CRs bewahrt werden? Und wozu?
+		
+		Map<Node,Node> nodeInGraph2ToNodeInGraph1 = new HashMap<Node,Node>();
+		
+		for(Node nodeOfSpan1 : span1.getGraph().getNodes()){
+			for(Node nodeOfSpan2 : span2.getGraph().getNodes()){
+				boolean sameType = (nodeOfSpan1.getType() == nodeOfSpan2.getType());
+				if(sameType){
+//					span1.getMappingIntoRule1(nodeOfSpan1);
+//					span2.getMappingIntoRule2(nodeOfSpan2);
+					boolean sameImageInRule1 = (span1.getMappingIntoRule1(nodeOfSpan1).getImage() == span2.getMappingIntoRule1(nodeOfSpan2).getImage());
+					boolean sameImageInRule2 = (span1.getMappingIntoRule2(nodeOfSpan1).getImage() == span2.getMappingIntoRule2(nodeOfSpan2).getImage());
+					if(sameImageInRule1 && sameImageInRule2)
+						nodeInGraph2ToNodeInGraph1.put(nodeOfSpan2, nodeOfSpan1);
+				}
+			}
+		}
+		
+		// Wie "Join" von zwei Spans ermöglichen?
+		// Originalspans sollen unverändert bleiben!
+		
+		// Die Anzahl der Mappings muss der Summe beider MAppings abzüglich der gefundenen gemeinsamen Knoten entsprechen!
+
+		// Wie bilden eines gemeinsamen Graphs?
+		
+		// ERkenntniss: es kann keine doppelten Kanten geben, oder? Das könnte es vereinfachen! 
+		// ABER: bei den "ge-jointen" Knoten müssen alle ein- und ausgehenden Kanten angepasst werden! 
+		
+		
+		/**kurzer VErsuch
+		 * - Graph1 kopieren in Graph1'
+		 * - Graph2 kopieren in Graph2'
+		 * - Kanten die mit den identifizierten DuplikatKnoten in Regel2' verbudnen sind anspassen auf den zugehörigen duplikatKnoten in Graph1'
+		 * - alle Kanten von Graph2' in Graph1' werfen
+		 * - Alle DuplikatKnoten aus Graph2' löschen.
+		 * - Alle verbleibenden Knoten in Graph2' zu denen in Graph1' werfen.
+		 * 
+		 *  Was ist mit den Mappings? Diese müssen entweder kopiert oder neu erzeugt werden. 
+		 *  Informationsgrundlage sind Graph1 und Graph2
+		 *   Am Ende muss es für jeden Knoten im resultierenden Graph (Graph1') ein Mapping in beide Regeln geben!
+		 */
+		
+//		TODO!
+		
+		 // - Graph1 kopieren in Graph1'
+		Copier graph1Copier = new Copier();
+		EObject copyOfGraph1 = graph1Copier.copy(span1.getGraph());
+		Graph graph1Copy = (Graph) copyOfGraph1;
+		graph1Copier.copyReferences(); // NOTWENDIG!!!
+		
+		// MAPPINGS of Graph1:
+		Copier mappingOfSpan1Copier = new Copier();
+		Collection<Mapping> mappingsOfSpan1InRule1Copies = mappingOfSpan1Copier.copyAll(span1.getMappingsInRule1());
+		mappingOfSpan1Copier.copyReferences();
+		Collection<Mapping> mappingsOfSpan1InRule2Copies = mappingOfSpan1Copier.copyAll(span1.getMappingsInRule2());
+		mappingOfSpan1Copier.copyReferences();
+		//DONE: alle Mappings ausgehend von Graph1 auf copyOfGraph1 anpassen
+		for(Mapping mapping : mappingsOfSpan1InRule1Copies){
+			Node newOrigin = (Node) graph1Copier.get(mapping.getOrigin()); //TODO VORSICHT(!) Wenn .get() 'null' zurück gibt kommt es zu einer NPE!
+			mapping.setOrigin(newOrigin);
+		}
+		for(Mapping mapping : mappingsOfSpan1InRule2Copies){
+			Node newOrigin = (Node) graph1Copier.get(mapping.getOrigin()); //TODO VORSICHT(!) Wenn .get() 'null' zurück gibt kommt es zu einer NPE!
+			mapping.setOrigin(newOrigin);
+		}
+
+		
+		 // - Graph2 kopieren in Graph2'
+		Copier graph2Copier = new Copier();
+		EObject copyOfGraph2 = graph2Copier.copy(span2.getGraph());
+		Graph graph2Copy = (Graph) copyOfGraph2;
+		graph2Copier.copyReferences(); // NOTWENDIG!!!
+		
+		// MAPPINGS of Graph2:
+		Copier mappingOfSpan2Copier = new Copier();
+		Collection<Mapping> mappingsOfSpan2InRule1Copies = mappingOfSpan2Copier.copyAll(span2.getMappingsInRule1());
+		mappingOfSpan2Copier.copyReferences();
+		Collection<Mapping> mappingsOfSpan2InRule2Copies = mappingOfSpan2Copier.copyAll(span2.getMappingsInRule2());
+		mappingOfSpan2Copier.copyReferences();
+		// DONE: alle Mappings ausgehend von Graph2 auf copyOfGraph2 anpassen
+		for(Mapping mapping : mappingsOfSpan2InRule1Copies){
+			Node newOrigin = (Node) graph2Copier.get(mapping.getOrigin()); //TODO VORSICHT(!) Wenn .get() 'null' zurück gibt kommt es zu einer NPE!
+			mapping.setOrigin(newOrigin);
+		}
+		for(Mapping mapping : mappingsOfSpan2InRule2Copies){
+			Node newOrigin = (Node) graph2Copier.get(mapping.getOrigin()); //TODO VORSICHT(!) Wenn .get() 'null' zurück gibt kommt es zu einer NPE!
+			mapping.setOrigin(newOrigin);
+		}
+		
+		// - Kanten die mit den identifizierten DuplikatKnoten in Regel2' 
+		//			verbunden sind anspassen auf den zugehörigen duplikatKnoten in Graph1'
+		List<Node> duplicateNodesInCopyOfGraph2 = new LinkedList<Node>();
+		for(Edge edgeInGraph2 : span2.getGraph().getEdges()){
+			if(nodeInGraph2ToNodeInGraph1.keySet().contains(edgeInGraph2.getSource())){
+				// zugehörige Kante in kopiertem Graph2 identifizieren
+				EObject edgeInCopy = graph2Copier.get(edgeInGraph2);
+				Edge edgeToAdaptInGraph2Copy = (Edge) edgeInCopy;
+				// entsprechend abändern des Knotens der Kopie
+					// zugehörigen Knoten in kopiertem Graph1 identfizieren
+				Node nodeInGraph1 = nodeInGraph2ToNodeInGraph1.get(edgeInGraph2.getSource());
+				EObject newSourceInCopy = graph1Copier.get(nodeInGraph1);
+				Node newSourceNodeInCopy = (Node) newSourceInCopy;
+				//TODO: ggf. prüfen, dass die Kntoen vom gelichen Typ sind, oder zumindest einer der Typen vom anderen erbt!
+				duplicateNodesInCopyOfGraph2.add(edgeToAdaptInGraph2Copy.getSource());
+				edgeToAdaptInGraph2Copy.setSource(newSourceNodeInCopy);
+			}
+			if(nodeInGraph2ToNodeInGraph1.keySet().contains(edgeInGraph2.getTarget())){
+				// zugehörige Kante in kopiertem Graph2 identifizieren
+				EObject edgeInCopy = graph2Copier.get(edgeInGraph2);
+				Edge edgeToAdaptInGraph2Copy = (Edge) edgeInCopy;
+				// entsprechend abändern des Knotens der Kopie
+					// zugehörigen Knoten in kopiertem Graph1 identfizieren
+				Node nodeInGraph1 = nodeInGraph2ToNodeInGraph1.get(edgeInGraph2.getTarget());
+				EObject newTargetInCopy = graph1Copier.get(nodeInGraph1);
+				Node newTargetNodeInCopy = (Node) newTargetInCopy;
+				//TODO: ggf. prüfen, dass die Kntoen vom gelichen Typ sind, oder zumindest einer der Typen vom anderen erbt!
+				duplicateNodesInCopyOfGraph2.add(edgeToAdaptInGraph2Copy.getTarget());
+				edgeToAdaptInGraph2Copy.setTarget(newTargetNodeInCopy);
+			}				
+		}
+			
+		
+		//TODO: extract to Method?
+		//MAPPINGS - entfernen der überzählingen Mappings durch das verienn von Knoten der beiden Graphs der beiden verinigten Spans!
+		List<Mapping> mappingsInRule1ToRemove = new LinkedList<Mapping>();
+		for(Mapping mappingOfSpan2InRule1 : mappingsOfSpan2InRule1Copies){
+			if(duplicateNodesInCopyOfGraph2.contains(mappingOfSpan2InRule1.getOrigin())){
+				mappingsInRule1ToRemove.add(mappingOfSpan2InRule1);
+			}
+		}
+		mappingsOfSpan2InRule1Copies.removeAll(mappingsInRule1ToRemove);
+		
+		List<Mapping> mappingsInRule2ToRemove = new LinkedList<Mapping>();
+		for(Mapping mappingOfSpan2InRule2 : mappingsOfSpan2InRule2Copies){
+			if(duplicateNodesInCopyOfGraph2.contains(mappingOfSpan2InRule2.getOrigin())){
+				mappingsInRule2ToRemove.add(mappingOfSpan2InRule2);
+			}
+		}
+		mappingsOfSpan2InRule2Copies.removeAll(mappingsInRule2ToRemove);
+		
+		
+		// überflüssige Knoten aus kopiertem Graph 2 entfernen
+		// - Alle DuplikatKnoten aus Graph2' löschen.
+		graph2Copy.getNodes().removeAll(duplicateNodesInCopyOfGraph2); //TODO: prüfen, ob das erfolgreich war. Gggf. nciht, wenn es in der Liste der zu entfernenden Knoten Duplikate gibt?
+		// - Alle verbleibenden Knoten in Graph2' zu denen in Graph1' werfen.
+		graph1Copy.getNodes().addAll(graph2Copy.getNodes());
+		// - alle Kanten von Graph2' in Graph1' werfen
+		graph1Copy.getEdges().addAll(graph2Copy.getEdges());
+		
+		
+		 // 
+		 //  Was ist mit den Mappings? Diese müssen entweder kopiert oder neu erzeugt werden. 
+		 //  Informationsgrundlage sind Graph1 und Graph2
+		 //   Am Ende muss es für jeden Knoten im resultierenden Graph (Graph1') ein Mapping in beide Regeln geben!
+		
+		
+		// TODO: Liste für die gemeinsamen Mappings in rule1
+		List<Mapping> mappingsOfNewSpanInRule1 = new LinkedList<Mapping>();
+		mappingsOfNewSpanInRule1.addAll(mappingsOfSpan1InRule1Copies);
+		mappingsOfNewSpanInRule1.addAll(mappingsOfSpan2InRule1Copies);
+		
+		// TODO: Liste für die gemeinsamen Mappings in rule2
+		List<Mapping> mappingsOfNewSpanInRule2 = new LinkedList<Mapping>();
+		mappingsOfNewSpanInRule2.addAll(mappingsOfSpan1InRule2Copies);
+		mappingsOfNewSpanInRule2.addAll(mappingsOfSpan2InRule2Copies);
+		
+//		DONE: neuen Span aus dem Graph sowie den mappings in den neuen Graph erzeugen!
+		Set<MinimalConflictReason> originMCR = new HashSet<MinimalConflictReason>();
+		if(span1 instanceof MinimalConflictReason){
+			originMCR.add((MinimalConflictReason) span1);
+		}else {
+			originMCR.addAll(span1.getOriginMCRs());
+		}
+		if(span2 instanceof MinimalConflictReason){
+			originMCR.add((MinimalConflictReason) span2);
+		}else {
+			originMCR.addAll(span2.getOriginMCRs());
+		}
+		ConflictReason newConflictReason =  new ConflictReason(mappingsOfNewSpanInRule1, graph1Copy, mappingsOfNewSpanInRule2, originMCR);
+		
+		return newConflictReason;
+	}
 }

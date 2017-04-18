@@ -39,11 +39,11 @@ public class CpaOnFeatureModelRunnerWithoutNACsWithoutUpperLimitOnReferencesNoAt
 		
 		List<String> deactivatedRules = new LinkedList<String>();
 //		deactivatedRules.add("Refactoring_1-4"); // bringt ähnlich gute ERgebnisse wie die anderen Refactorings, ist daher also bei Bedarf verzichtbar
-		deactivatedRules.add("Refactoring_1-9"); // most likely DEADLOCK in Atmoic CPA!
-		deactivatedRules.add("deleteGroup_IN_FeatureModel"); // most likely DEADLOCK in Atmoic CPA!
-		deactivatedRules.add("Generalization_2-2"); // most likely DEADLOCK in Atmoic CPA!
-		
-		deactivatedRules.add("PushDownGroup"); // most likely DEADLOCK in Atmoic CPA!
+//		deactivatedRules.add("Refactoring_1-9"); // most likely DEADLOCK in Atmoic CPA!
+//		deactivatedRules.add("deleteGroup_IN_FeatureModel"); // most likely DEADLOCK in Atmoic CPA!
+//		deactivatedRules.add("Generalization_2-2"); // most likely DEADLOCK in Atmoic CPA!
+//		
+//		deactivatedRules.add("PushDownGroup"); // most likely DEADLOCK in Atmoic CPA!
 		
 //		deactivatedRules.add("Specialization_3-6"); // Ram läuft voll. 	
 		
@@ -52,18 +52,18 @@ public class CpaOnFeatureModelRunnerWithoutNACsWithoutUpperLimitOnReferencesNoAt
 		
 		final File f = new File(Runner.class.getProtectionDomain().getCodeSource().getLocation().getPath());
 		String filePath = f.toString();
-		// String shortendPath = filePath.replaceAll("org.eclipse.emf.henshin.cpa.atomic\\bin", "");
+		// String shortendPath = filePath.replaceAll("org.eclipse.emf.henshin.cpa.atomic.main\\bin", "");
 		String projectPath = filePath.replaceAll("bin", "");
 		// String shortendPath0 = filePath.replaceAll("bin", "");
 		// String shortendPath1 = shortendPath0.substring(0, shortendPath0.length()-1);
-		// String projectPath = shortendPath1.replaceAll("org.eclipse.emf.henshin.cpa.atomic", "");
+		// String projectPath = shortendPath1.replaceAll("org.eclipse.emf.henshin.cpa.atomic.main", "");
 		// String shortendPath = filePath.replaceAll("bin", "");
 		System.out.println(projectPath);
 		String subDirectoryPath = "testData\\featureModelingWithoutUpperLimitsOnReferences\\fmedit_noAmalgamation_noNACs_noAttrChange\\rules\\";
 		String fullSubDirectoryPath = projectPath + subDirectoryPath;
 		
 		Runner runner = new Runner();
-		runner.setAnalysisKinds(false, true, false);
+		runner.setAnalysisKinds(false, false, false, false, true, false);
 		runner.run(fullSubDirectoryPath, deactivatedRules);
 	}
 }

@@ -45,7 +45,7 @@ public class ComputeMinReasonsTest {
 
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeCandidates(decapsulateAttributeRule,
+		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeRule,
 				pullUpEncapsulatedAttributeRule);
 
 		System.out.println("HALT");
@@ -59,7 +59,7 @@ public class ComputeMinReasonsTest {
 
 		Set<Span> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
-			atomicCoreCPA.computeMinReasons(decapsulateAttributeRule, pullUpEncapsulatedAttributeRule, candidate,
+			atomicCoreCPA.computeMinimalConflictReasons(decapsulateAttributeRule, pullUpEncapsulatedAttributeRule, candidate,
 					reasons);
 		}
 

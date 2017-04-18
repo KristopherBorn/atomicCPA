@@ -1,19 +1,16 @@
-package org.eclipse.emf.henshin.cpa.atomic.runner;
+package org.eclipse.emf.henshin.cpa.atomic.tasks;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
-import org.eclipse.emf.henshin.cpa.CPAOptions;
-import org.eclipse.emf.henshin.cpa.CpaByAGG;
-import org.eclipse.emf.henshin.cpa.ICriticalPairAnalysis;
-import org.eclipse.emf.henshin.cpa.UnsupportedRuleException;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.result.CPAResult;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
 import org.eclipse.emf.henshin.model.Rule;
 
 public class CalculateAtomicCpaTask implements Callable<List<ConflictAtom>> {
@@ -21,47 +18,27 @@ public class CalculateAtomicCpaTask implements Callable<List<ConflictAtom>> {
 	Rule firstRule;
 	Rule secondRule; 
 	
-	long normalRunTime;
+	long conflictAtomRunTime;
 	
-	AtomicResultKeeper resultKeeper;
+	AtomicResultContainer resultKeeper;
 	
-	public CalculateAtomicCpaTask(AtomicResultKeeper resultKeeper) {
+	public CalculateAtomicCpaTask(AtomicResultContainer resultKeeper) {
 		
 		this.resultKeeper = resultKeeper;
 		
 		this.firstRule = resultKeeper.getFirstRule();
 		this.secondRule = resultKeeper.getSecondRule();
-		
-
-		// normal CPA setup
-
-				
-//		long normalStartTime = System.currentTimeMillis();
-//		try {
-//			normalCpa.init(firstRuleList, secondRuleList, normalOptions);
-//			normalResult = normalCpa.runConflictAnalysis();
-//		} catch (UnsupportedRuleException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//		
-//
-//		long normalEndTime = System.currentTimeMillis();
-//		long normalRunTime = normalEndTime - normalStartTime;
-		
-		// TODO Auto-generated constructor stub
 	}
 
 	@Override
 	public List<ConflictAtom> call() throws Exception {
-		System.out.println("CALLL!");
+//		System.out.println("CALLL!");
 
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 
-		long normalStartTime = System.currentTimeMillis();
-
-		
 		List<ConflictAtom> computeConflictAtoms = new LinkedList<AtomicCoreCPA.ConflictAtom>();
+
+		long normalStartTime = System.currentTimeMillis();
 		
 		try {
 			computeConflictAtoms = atomicCoreCPA.computeConflictAtoms(firstRule, secondRule);
@@ -70,12 +47,25 @@ public class CalculateAtomicCpaTask implements Callable<List<ConflictAtom>> {
 		}
 		
 		long normalEndTime = System.currentTimeMillis();
-		normalRunTime = normalEndTime - normalStartTime;
+		conflictAtomRunTime = normalEndTime - normalStartTime;
 		
 		resultKeeper.addResult(computeConflictAtoms);
-		resultKeeper.setCalculationTime(normalRunTime);
+		resultKeeper.setCalculationTime(conflictAtomRunTime);
 		resultKeeper.setCandidates(atomicCoreCPA.getCandidates());
-		resultKeeper.setOverallReasons(atomicCoreCPA.getOverallReasons());
+		resultKeeper.setMinimalConflictReasons(atomicCoreCPA.getMinimalConflictReasons());
+		
+		Set<MinimalConflictReason> minimalConflictReasons = new HashSet<MinimalConflictReason>();
+		for(Span conflictReason : atomicCoreCPA.getMinimalConflictReasons()){
+			minimalConflictReasons.add(atomicCoreCPA.new MinimalConflictReason(conflictReason));
+		}
+		long conflictReasonStartTime = System.currentTimeMillis();
+		Set<ConflictReason> conflictReasons = atomicCoreCPA.computeConflictReason(minimalConflictReasons);
+		long conflictReasonEndTime = System.currentTimeMillis();
+		long conflictReasonAdditionalRunTime = conflictReasonEndTime - conflictReasonStartTime;
+		long conflictReasonOverallRuneTime = conflictAtomRunTime + conflictReasonAdditionalRunTime;
+		
+		resultKeeper.setConflictReasonOverallTime(conflictReasonOverallRuneTime);
+		resultKeeper.setConflictReasons(conflictReasons);
 		
 		return computeConflictAtoms;
 	}

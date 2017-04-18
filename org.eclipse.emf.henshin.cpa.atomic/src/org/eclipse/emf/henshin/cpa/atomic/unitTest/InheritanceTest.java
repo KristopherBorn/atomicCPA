@@ -103,7 +103,7 @@ public class InheritanceTest {
 	@Test
 	public void conflictPartCandidates_decapsulateAttr_pullUpEncAttr_Test() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<Span> computedConflictPartCandidates = atomicCoreCPA.computeCandidates(decapsulateAttributeWithExecutable,
+		List<Span> computedConflictPartCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeWithExecutable,
 			pullUpEncapsulatedAttributeWitExecutable);
 	assertEquals(5, computedConflictPartCandidates.size());
 	}
@@ -112,7 +112,7 @@ public class InheritanceTest {
 	@Test
 	public void conflictPartCandidates_decapsulateAttr_decapsulateAttr() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<Span> computedConflictPartCandidates = atomicCoreCPA.computeCandidates(decapsulateAttributeWithExecutable,
+		List<Span> computedConflictPartCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeWithExecutable,
 				decapsulateAttributeWithExecutable);
 	assertEquals(5, computedConflictPartCandidates.size());
 	}
@@ -121,7 +121,7 @@ public class InheritanceTest {
 	@Test
 	public void conflictPartCandidates_pullUpEncAttr_decapsulateAttr() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<Span> computedConflictPartCandidates = atomicCoreCPA.computeCandidates(pullUpEncapsulatedAttributeWitExecutable,
+		List<Span> computedConflictPartCandidates = atomicCoreCPA.computeAtomCandidates(pullUpEncapsulatedAttributeWitExecutable,
 				decapsulateAttributeWithExecutable);
 	assertEquals(5, computedConflictPartCandidates.size());
 	}
@@ -130,7 +130,7 @@ public class InheritanceTest {
 	@Test
 	public void conflictPartCandidates_pullUpEncAttr_pullUpEncAttr() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<Span> computedConflictPartCandidates = atomicCoreCPA.computeCandidates(pullUpEncapsulatedAttributeWitExecutable,
+		List<Span> computedConflictPartCandidates = atomicCoreCPA.computeAtomCandidates(pullUpEncapsulatedAttributeWitExecutable,
 				pullUpEncapsulatedAttributeWitExecutable);
 	assertEquals(5, computedConflictPartCandidates.size());
 	}
@@ -141,11 +141,11 @@ public class InheritanceTest {
 	@Test
 	public void conflictMinReason_decapsulateAttr_pullUpEncAttr_Test() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeCandidates(decapsulateAttributeWithExecutable,
+		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeWithExecutable,
 				pullUpEncapsulatedAttributeWitExecutable);
 		Set<Span> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
-			atomicCoreCPA.computeMinReasons(decapsulateAttributeWithExecutable, pullUpEncapsulatedAttributeWitExecutable, candidate,
+			atomicCoreCPA.computeMinimalConflictReasons(decapsulateAttributeWithExecutable, pullUpEncapsulatedAttributeWitExecutable, candidate,
 					reasons);
 		}
 		assertEquals(2, reasons.size());
@@ -157,11 +157,11 @@ public class InheritanceTest {
 	@Test
 	public void conflictMinReason_decapsulateAttr_decapsulateAttr() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeCandidates(decapsulateAttributeWithExecutable,
+		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeWithExecutable,
 				decapsulateAttributeWithExecutable);
 		Set<Span> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
-			atomicCoreCPA.computeMinReasons(decapsulateAttributeWithExecutable, decapsulateAttributeWithExecutable, candidate,
+			atomicCoreCPA.computeMinimalConflictReasons(decapsulateAttributeWithExecutable, decapsulateAttributeWithExecutable, candidate,
 					reasons);
 		}
 		assertEquals(2, reasons.size());
@@ -176,11 +176,11 @@ public class InheritanceTest {
 	@Test
 	public void conflictMinReason_pullUpEncAttr_decapsulateAttr() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeCandidates(pullUpEncapsulatedAttributeWitExecutable,
+		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pullUpEncapsulatedAttributeWitExecutable,
 				decapsulateAttributeWithExecutable);
 		Set<Span> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
-			atomicCoreCPA.computeMinReasons(pullUpEncapsulatedAttributeWitExecutable, decapsulateAttributeWithExecutable, candidate,
+			atomicCoreCPA.computeMinimalConflictReasons(pullUpEncapsulatedAttributeWitExecutable, decapsulateAttributeWithExecutable, candidate,
 					reasons);
 		}
 		assertEquals(5, reasons.size());
@@ -195,11 +195,11 @@ public class InheritanceTest {
 	@Test
 	public void conflictMinReason_pullUpEncAttr_pullUpEncAttr() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeCandidates(pullUpEncapsulatedAttributeWitExecutable,
+		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pullUpEncapsulatedAttributeWitExecutable,
 				pullUpEncapsulatedAttributeWitExecutable);
 		Set<Span> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
-			atomicCoreCPA.computeMinReasons(pullUpEncapsulatedAttributeWitExecutable, pullUpEncapsulatedAttributeWitExecutable, candidate,
+			atomicCoreCPA.computeMinimalConflictReasons(pullUpEncapsulatedAttributeWitExecutable, pullUpEncapsulatedAttributeWitExecutable, candidate,
 					reasons);
 		}
 		assertEquals(5, reasons.size());

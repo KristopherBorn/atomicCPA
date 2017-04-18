@@ -22,7 +22,7 @@ public class LoggerPB {
 
 	private static DateFormat dateFormat = new SimpleDateFormat("yy_MM_dd-HHmmss");
 	
-	// access: runtimeResults[row][column] - reihe - Spalte
+	// access: analysisDurations[row][column] - reihe - Spalte
 	String[][] runtimeResults;
 	String[][] numberOfDeleteUseConflicts;
 	
