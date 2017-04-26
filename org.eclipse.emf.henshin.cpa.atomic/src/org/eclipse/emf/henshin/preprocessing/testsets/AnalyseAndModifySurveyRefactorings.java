@@ -16,6 +16,7 @@ public class AnalyseAndModifySurveyRefactorings {
 //		String noMultiRules = "noMultiRules\\";
 //		String noMultiRulesNoAc = "noMultiRules_noAC\\";
 //		String noMultiRulesNoAcNoAttrChange = "noMultiRules_noAC_noAttrChange\\";
+		String preserveRules = "preserve_rules\\";
 		
 		// analyze original
 		DirectoryAnalyser directoryAnalyser = new DirectoryAnalyser();
@@ -34,8 +35,11 @@ public class AnalyseAndModifySurveyRefactorings {
 		
 		// reduce attribute changes
 		
+		// build PRESERVE-rules from DELETE-rules
+		ruleSetModifier.transformDeleteToPreserve(subDirectoryPath+original, subDirectoryPath+preserveRules, true);
+		
 		// analyze result
-//		directoryAnalyser.analyseDirectory(subDirectoryPath+noMultiRulesNoAc).printAllResultsOnConsole();
+		directoryAnalyser.analyseDirectory(subDirectoryPath+preserveRules).printAllResultsOnConsole();
 
 	}
 

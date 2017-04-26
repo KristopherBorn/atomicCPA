@@ -16,10 +16,10 @@ public class AnalyseAndModifyUmlEditRules {
 		String noMultiRules = "noMultiRules\\";
 		String noMultiRulesNoAc = "noMultiRules_noAC\\";
 		String noMultiRulesNoAcNoAttrChange = "noMultiRules_noAC_noAttrChange\\";
+		String noMultiRulesNoAcPreserve = "noMultiRules_noAC_delToPreserve\\";
 		
 		// analyze original
-		DirectoryAnalyser directoryAnalyser = new DirectoryAnalyser();
-		AnalysisResult analysesResult = directoryAnalyser.analyseDirectory(subDirectoryPath+original);
+		AnalysisResult analysesResult = DirectoryAnalyser.analyseDirectory(subDirectoryPath+original);
 		analysesResult.printAllResultsOnConsole();
 		
 		//reduce units
@@ -33,9 +33,13 @@ public class AnalyseAndModifyUmlEditRules {
 //		ruleSetModifier.removeApplicationConditions(subDirectoryPath+noMultiRules, subDirectoryPath+noMultiRulesNoAc);
 		
 		// reduce attribute changes
+		// TODO!
+		
+		//
+		ruleSetModifier.transformDeleteToPreserve(subDirectoryPath+noMultiRulesNoAc, subDirectoryPath+noMultiRulesNoAcPreserve, true);
 		
 		// analyze result
-		directoryAnalyser.analyseDirectory(subDirectoryPath+noMultiRulesNoAc).printAllResultsOnConsole();
+		DirectoryAnalyser.analyseDirectory(subDirectoryPath+noMultiRulesNoAc).printAllResultsOnConsole();
 
 	}
 
