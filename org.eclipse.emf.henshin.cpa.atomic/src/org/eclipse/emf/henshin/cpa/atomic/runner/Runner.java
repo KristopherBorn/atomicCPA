@@ -160,8 +160,8 @@ public class Runner {
 		
 		// aufgrund der Erkenntnis, dass die nutzende (use) Regel keine löschenden Teile haben darf 
 		// wird zu jeder zu analysierenden Regel eine angepasste Regel als zweite nutzende (use) Regel erstellt
-//		List<Rule> copiesOfRulesWithoutDeletion = buildCopiesOfRulesWithoutDeletion(allLoadedRules);
-		List<Rule> copiesOfRulesWithoutDeletion = allLoadedRules;
+		List<Rule> copiesOfRulesWithoutDeletion = buildCopiesOfRulesWithoutDeletion(allLoadedRules);
+//		List<Rule> copiesOfRulesWithoutDeletion = allLoadedRules;
 
 		
 //		Namen müssen dabei adaptiert werden, sonst ist nach dem Export bei der Ansteuerung von agg nicht klar welche Regel die erste und welche die zweite ist.
@@ -638,7 +638,7 @@ public class Runner {
 		this.runAtomicDependencyAnalysis = atomicDependencyAnalysis;
 	}
 
-	private List<Rule> loadAllRulesFromFileSystemPaths(List<String> pathsToHenshinFiles, List<String> namesOfDeactivatedRules) {
+	public static List<Rule> loadAllRulesFromFileSystemPaths(List<String> pathsToHenshinFiles, List<String> namesOfDeactivatedRules) {
 		List<Rule> allEditRulesWithoutAmalgamation = new LinkedList<Rule>();
 
 		for (String pathToHenshinFiles : pathsToHenshinFiles) {
@@ -664,7 +664,7 @@ public class Runner {
 	// WICHTIG(!): 
 	// filterd bei "AnalysisKind.CONFLICT" die delete-use-conflicts 
 	// und bei "AnalysisKind.DEPENDENCIES" die produce-use-dependencies
-	private List<CriticalPair> filterCriticalPairs(CPAResult cpaResult, AnalysisKind analysisKind) {
+	public static List<CriticalPair> filterCriticalPairs(CPAResult cpaResult, AnalysisKind analysisKind) {
 		// filter delete-use conflicts:
 		if (cpaResult != null) {
 			List<CriticalPair> criticalPairs = cpaResult.getCriticalPairs();
@@ -688,7 +688,8 @@ public class Runner {
 		return new LinkedList<CriticalPair>();
 	}
 
-	private List<String> inspectDirectoryForHenshinFiles(File dir) {
+	//TODO:  als eine static Methode die auch außerhalb des Runners Verwendung findet sollte diese entsprechend in einer anderen allgemeineren Klasse breitgestellt werden!
+	public static List<String> inspectDirectoryForHenshinFiles(File dir) {
 		List<String> pathsToHenshinFiles = new LinkedList<String>();
 		File[] directoryListing = dir.listFiles();
 		if (directoryListing != null) {
