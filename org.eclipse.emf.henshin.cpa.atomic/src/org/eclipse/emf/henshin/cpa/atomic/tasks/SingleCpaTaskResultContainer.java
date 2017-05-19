@@ -16,10 +16,10 @@ public class SingleCpaTaskResultContainer {
 	
 	long analysisDuration;
 
-	public SingleCpaTaskResultContainer(List<Rule> firstRuleList, List<Rule> secondRuleList, CPAOptions normalOptions) {
+	public SingleCpaTaskResultContainer(List<Rule> firstRuleList, List<Rule> secondRuleList, CPAOptions cpaOptions) {
 		this.firstRuleList = firstRuleList;
 		this.secondRuleList = secondRuleList;
-		this.normalOptions = normalOptions;
+		this.normalOptions = cpaOptions;
 		// TODO Auto-generated constructor stub
 	}
 

@@ -61,7 +61,7 @@ public class FindDanglingEdgesTest {
 		PushoutResult pushoutResult = atomicCoreCPA.newPushoutResult(decapsulateAttributeRule, span,
 				pullUpEncapsulatedAttributeRule);
 
-		List<Edge> findDanglingEdges = atomicCoreCPA.findDanglingEdges(decapsulateAttributeRule,
+		List<Edge> findDanglingEdges = atomicCoreCPA.findDanglingEdgesByLHSOfRule1(decapsulateAttributeRule,
 				pushoutResult.getMappingsOfRule1());
 
 		assertEquals(2, findDanglingEdges.size());
@@ -108,7 +108,7 @@ public class FindDanglingEdgesTest {
 		PushoutResult pushoutResult = atomicCoreCPA.newPushoutResult(decapsulateAttributeRule, span,
 				pullUpEncapsulatedAttributeRule);
 
-		List<Edge> findDanglingEdges = atomicCoreCPA.findDanglingEdges(decapsulateAttributeRule,
+		List<Edge> findDanglingEdges = atomicCoreCPA.findDanglingEdgesByLHSOfRule1(decapsulateAttributeRule,
 				pushoutResult.getMappingsOfRule1());
 
 		assertEquals(2, findDanglingEdges.size());
@@ -171,7 +171,7 @@ public class FindDanglingEdgesTest {
 		PushoutResult pushoutResult = atomicCoreCPA.newPushoutResult(decapsulateAttributeRule, span,
 				pullUpEncapsulatedAttributeRule);
 
-		List<Edge> findDanglingEdges = atomicCoreCPA.findDanglingEdges(decapsulateAttributeRule,
+		List<Edge> findDanglingEdges = atomicCoreCPA.findDanglingEdgesByLHSOfRule1(decapsulateAttributeRule,
 				pushoutResult.getMappingsOfRule1());
 
 		assertEquals(0, findDanglingEdges.size());

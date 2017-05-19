@@ -17,7 +17,6 @@ public class ConflictsOfUmlEditRulesWithoutACsWithoutMultiRulesRunner extends Ru
 		System.out.println("test");
 		
 		// ???? Ist das auch für UML notwendig? Denke nicht, oder? ERGEBNIS: 
-		
 		UMLPackage.eINSTANCE.eClass();
 
 		Resource.Factory.Registry reg = Resource.Factory.Registry.INSTANCE;

@@ -19,7 +19,7 @@ import org.eclipse.emf.henshin.model.resource.HenshinResourceSet;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ComputeMinReasonsTest {
+public class ComputeMinConflReasonsTest {
 
 	final String PATH = "testData/refactoring/";
 	final String henshinFileName = "refactorings.henshin";

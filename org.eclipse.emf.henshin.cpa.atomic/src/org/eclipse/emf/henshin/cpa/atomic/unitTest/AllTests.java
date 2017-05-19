@@ -5,7 +5,7 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
-@SuiteClasses({ ComputeCandidatesTest.class, ComputeConflictAtomsTest.class, ComputeConflictReasonTest.class, ComputeMinReasonsTest.class,
+@SuiteClasses({ ComputeCandidatesTest.class, ComputeConflictAtomsTest.class, ComputeConflictReasonTest.class, ComputeMinConflReasonsTest.class,
 		EnumerateDisjointCombinationsTest.class, FindDanglingEdgesTest.class, FindFixingEdgesTest.class,
 		IntegrationTest.class, PushoutTests.class, RobustnessTest.class, RuleInversionTest.class })
 public class AllTests {

@@ -36,10 +36,10 @@ public class AnalyseAndModifyUmlEditRules {
 		// TODO!
 		
 		//
-		ruleSetModifier.transformDeleteToPreserve(subDirectoryPath+noMultiRulesNoAc, subDirectoryPath+noMultiRulesNoAcPreserve, true);
+//		ruleSetModifier.transformDeleteToPreserve(subDirectoryPath+noMultiRulesNoAc, subDirectoryPath+noMultiRulesNoAcPreserve, true);
 		
 		// analyze result
-		DirectoryAnalyser.analyseDirectory(subDirectoryPath+noMultiRulesNoAc).printAllResultsOnConsole();
+//		DirectoryAnalyser.analyseDirectory(subDirectoryPath+noMultiRulesNoAc).printAllResultsOnConsole();
 
 	}
 

@@ -4,6 +4,16 @@ import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import org.eclipse.core.internal.resources.Project;
+import org.eclipse.core.internal.resources.WorkspaceRoot;
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
 import org.eclipse.emf.ecore.xmi.impl.EcoreResourceFactoryImpl;
@@ -28,10 +38,23 @@ public class ConflictsOfFeatureModelRunner2 extends Runner{
 		
 		List<String> deactivatedRules = new LinkedList<String>();
 		
-		final File f = new File(Runner.class.getProtectionDomain().getCodeSource().getLocation().getPath());
-		String filePath = f.toString();
-
+		final File binaryFolder = new File(Runner.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+//		File projectFolder = binaryFolder.getParentFile();
+//		projectFolder.
+//		IWorkspaceRoot workspaceRoot = WorkspaceRoot.get
+//		WorkspaceRoot workspaceRoot = new WorkspaceRoot();
+//		IWorkspace workspace= ResourcesPlugin.getWorkspace();    
+//		IPath binaryFolderPath = Path.fromOSString(binaryFolder.getAbsolutePath());
+//		IPath projectIPath = binaryFolderPath.removeLastSegments(1);
+//		IPath testDataIPath = projectIPath.append("testData");
+//		IFile binaryFolderIfile= workspace.getRoot().getFileForLocation(location);
+//		IFolder projectFolder = binaryFolderIfile.getParent();
+//		binaryFolderIfile.getProjectRelativePath().a
+		
+		String filePath = binaryFolder.toString();
 		String projectPath = filePath.replaceAll("bin", "");
+		
+		
 		System.out.println(projectPath);
 		String subDirectoryPath = "testData\\featureModelingWithoutUpperLimitsOnReferences\\fmedit_noAmalgamation_noNACs_noAttrChange_additionalPreserveProgrammatic\\normal_rules\\";
 		String fullSubDirectoryPath = projectPath + subDirectoryPath;
@@ -39,7 +62,7 @@ public class ConflictsOfFeatureModelRunner2 extends Runner{
 		Runner runner = new Runner();
 		runner.setNoApplicationConditions(true);
 		runner.setNoMultirules(true);
-		runner.setAnalysisKinds(false, false, true, false, false, false);
+		runner.setAnalysisKinds(false, false, true, false, true, false);
 		runner.run(fullSubDirectoryPath, deactivatedRules);
 	}
 }

@@ -20,13 +20,14 @@ import org.eclipse.emf.henshin.cpa.atomic.compareLogger.deprecated.EssentialCpaL
 import org.eclipse.emf.henshin.cpa.atomic.compareLogger.deprecated.Logger;
 import org.eclipse.emf.henshin.cpa.atomic.compareLogger.deprecated.MinimalReasonLogger;
 import org.eclipse.emf.henshin.cpa.atomic.compareLogger.deprecated.NormalCpaLogger;
-import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
 import org.eclipse.emf.henshin.cpa.atomic.tasks.AtomicResultContainer;
 import org.eclipse.emf.henshin.cpa.atomic.tasks.CalculateAtomicCpaTask;
 import org.eclipse.emf.henshin.cpa.atomic.tasks.CalculateCpaTask;
 import org.eclipse.emf.henshin.cpa.atomic.tasks.SingleCpaTaskResultContainer;
+import org.eclipse.emf.henshin.cpa.atomic.tasks.CalculateCpaTask.AnalysisKind;
 import org.eclipse.emf.henshin.cpa.result.CPAResult;
 import org.eclipse.emf.henshin.cpa.result.Conflict;
 import org.eclipse.emf.henshin.cpa.result.ConflictKind;
@@ -165,7 +166,10 @@ public class RefactoringRunner {
 		
 		List<Rule> skippedRules = new LinkedList<Rule>();
 				
-
+		// this runner is limited to conflicts!
+		AnalysisKind analysisKind = CalculateCpaTask.AnalysisKind.CONFLICT;
+				
+		
 		for (Rule firstRule : allLoadedRules) {
 			
 			if(skippedRules.contains(firstRule))
@@ -243,7 +247,7 @@ public class RefactoringRunner {
 										SingleCpaTaskResultContainer singleCpaTaskResultContainer = new SingleCpaTaskResultContainer(firstRuleList, secondRuleList, normalOptions);
 										ExecutorService executor = Executors.newSingleThreadExecutor();
 										try {
-											executor.submit(new CalculateCpaTask(singleCpaTaskResultContainer)).get(15, TimeUnit.MINUTES);
+											executor.submit(new CalculateCpaTask(singleCpaTaskResultContainer, analysisKind)).get(15, TimeUnit.MINUTES);
 										} catch (NullPointerException | InterruptedException | ExecutionException e) {
 											System.err.println("Timeout!");
 											executor.shutdown();
@@ -311,7 +315,7 @@ public class RefactoringRunner {
 										SingleCpaTaskResultContainer singleCpaTaskResultContainer = new SingleCpaTaskResultContainer(firstRuleList, secondRuleList, essentialOptions);
 										ExecutorService executor = Executors.newSingleThreadExecutor();
 										try {
-											executor.submit(new CalculateCpaTask(singleCpaTaskResultContainer)).get(15, TimeUnit.MINUTES);
+											executor.submit(new CalculateCpaTask(singleCpaTaskResultContainer, analysisKind)).get(15, TimeUnit.MINUTES);
 										} catch (NullPointerException | InterruptedException | ExecutionException e) {
 											System.err.println("Timeout!");
 											executor.shutdown();

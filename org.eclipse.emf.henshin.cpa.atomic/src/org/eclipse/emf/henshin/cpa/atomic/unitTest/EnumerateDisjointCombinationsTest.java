@@ -63,7 +63,7 @@ public class EnumerateDisjointCombinationsTest {
 
 		pushoutResult = atomicCoreCPA.newPushoutResult(decapsulateAttributeRule, span, pullUpEncapsulatedAttributeRule);
 
-		danglingEdges = atomicCoreCPA.findDanglingEdges(decapsulateAttributeRule, pushoutResult.getMappingsOfRule1());
+		danglingEdges = atomicCoreCPA.findDanglingEdgesByLHSOfRule1(decapsulateAttributeRule, pushoutResult.getMappingsOfRule1());
 
 		assertEquals(2, danglingEdges.size());
 

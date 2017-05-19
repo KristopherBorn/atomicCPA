@@ -215,7 +215,7 @@ public class AtomicCoreCPA {
 		PushoutResult pushoutResult = constructPushout(rule1, rule2, s1);
 		// TODO: wofür wird G benötigt? Vermutlich nur als Ziel der matches, oder?
 		// Oder ist das nicht normalerweise das minimale Modell?
-		boolean isMatchM1 = findDanglingEdges(rule1, pushoutResult.getMappingsOfRule1()).isEmpty(); // TODO: über den
+		boolean isMatchM1 = findDanglingEdgesByLHSOfRule1(rule1, pushoutResult.getMappingsOfRule1()).isEmpty(); // TODO: über den
 																									// jeweiligen match
 																									// sollte doch die
 																									// Regel auch
@@ -249,7 +249,7 @@ public class AtomicCoreCPA {
 		}
 
 		PushoutResult pushoutResult = constructPushout(rule1, rule2, s1);
-		List<Edge> danglingEdges = findDanglingEdges(rule1, pushoutResult.getMappingsOfRule1());
+		List<Edge> danglingEdges = findDanglingEdgesByLHSOfRule1(rule1, pushoutResult.getMappingsOfRule1());
 		System.out.println(s1.getGraph().getNodes() + " " + s1.getGraph().getEdges());
 	
 		List<Edge> fixingEdges = new LinkedList<>();
@@ -458,19 +458,22 @@ public class AtomicCoreCPA {
 	// gearbeitet!)
 	// Spezifikation der MEthode: Gibt die Menge der Kanten aus der Regel zurück, die beim anwenden auf den overlapGraph
 	// zu einer dangling edge führen würden!
-	public List<Edge> findDanglingEdges(Rule rule, List<Mapping> embedding) {
+	public List<Edge> findDanglingEdgesByLHSOfRule1(Rule rule, List<Mapping> embedding) {
 		HashMap<Node, Node> l1ToOverlap = new HashMap<Node, Node>();
 		HashMap<Node, Node> overlapToL1 = new HashMap<Node, Node>();
-		for (Mapping mapping : embedding) {
-			l1ToOverlap.put(mapping.getOrigin(), mapping.getImage());
+		for (Mapping mapping : embedding) { //Hier kommt es zu Problemen, wenn durch die Mappings zwei Knoten aus einer Regel einem Knoten im Graph zugeordnet sind.
+			//eigentlich dürfte das nicht passieren, da wir injektives matching erlauben, aber unsicher ist es dadurch im Fehlerfall dennoch!
+			l1ToOverlap.put(mapping.getOrigin(), mapping.getImage()); 
 			overlapToL1.put(mapping.getImage(), mapping.getOrigin());
 		}
 
 		EList<Node> l1DeletingNodes = rule.getActionNodes(new Action(Action.Type.DELETE));
 		List<Edge> danglingEdges = new LinkedList<Edge>();
 		// für jeden gelöschten Knoten prüfen, dass auch all seine Kanten gelöscht werden.
-		for (Node l1Deleting : l1DeletingNodes) {
-			Node poDeleting = l1ToOverlap.get(l1Deleting);
+		for (Node l1Deleting : l1DeletingNodes) {  
+			Node poDeleting = l1ToOverlap.get(l1Deleting); //(18.04.2017) durch "get()" kann null zurückgegeben werden und es kommt dann im Anschluss zur NPE!
+			if(poDeleting == null)
+				System.out.println();
 			EList<Edge> poDeletingsEdges = poDeleting.getAllEdges();
 			for (Edge poDeletingsEdge : poDeletingsEdges) {
 				Node poDelSource = poDeletingsEdge.getSource();
@@ -489,6 +492,115 @@ public class AtomicCoreCPA {
 		}
 
 		System.out.println(embedding.get(0).getImage().getGraph().getNodes().size());
+		System.out.println("found "+danglingEdges.size()+ " dangling edges: "+danglingEdges);
+		return danglingEdges;
+	}
+	
+	// Spezifikation der Methode: Gibt die Menge der Kanten aus der Regel zurück, die beim Anwenden auf den overlapGraph
+	// zu einer dangling edge führen würden!
+	public List<Edge> findDanglingEdgesByLHSOfRule2(List<Mapping> mappingInRule1, Rule rule, List<Mapping> mappingInRule2) {
+		
+		HashMap<Node, Node> l1ToOverlap = new HashMap<Node, Node>();
+		HashMap<Node, Node> overlapToL1 = new HashMap<Node, Node>();
+		for (Mapping mapping : mappingInRule1) { //Hier kommt es zu Problemen, wenn durch die Mappings zwei Knoten aus einer Regel einem Knoten im Graph zugeordnet sind.
+			//eigentlich dürfte das nicht passieren, da wir injektives matching vorsehen, aber unsicher ist es dadurch im Fehlerfall dennoch!
+			overlapToL1.put(mapping.getOrigin(), mapping.getImage()); 
+			l1ToOverlap.put(mapping.getImage(), mapping.getOrigin());
+		}
+		
+		HashMap<Node, Node> l2ToOverlap = new HashMap<Node, Node>();
+		HashMap<Node, Node> overlapToL2 = new HashMap<Node, Node>();
+		for (Mapping mapping : mappingInRule2) { //Hier kommt es zu Problemen, wenn durch die Mappings zwei Knoten aus einer Regel einem Knoten im Graph zugeordnet sind.
+			//eigentlich dürfte das nicht passieren, da wir injektives matching vorsehen, aber unsicher ist es dadurch im Fehlerfall dennoch!
+			overlapToL2.put(mapping.getOrigin(), mapping.getImage()); 
+			l2ToOverlap.put(mapping.getImage(), mapping.getOrigin());
+		}
+
+		EList<Node> l2DeletingNodes = rule.getActionNodes(new Action(Action.Type.DELETE));
+		List<Edge> danglingEdges = new LinkedList<Edge>();
+		// für jeden gelöschten Knoten prüfen, dass auch all seine Kanten gelöscht werden.
+		for (Node l2Deleting : l2DeletingNodes) {  
+			Node nodeInOverlapToBeDeletedByRule2= l2ToOverlap.get(l2Deleting); //(18.04.2017) durch "get()" kann null zurückgegeben werden und es kommt dann im Anschluss zur NPE!
+			if(nodeInOverlapToBeDeletedByRule2 != null){
+				EList<Edge> incomingEdgesInOverlapToCheck = nodeInOverlapToBeDeletedByRule2.getIncoming();// getAllEdges();
+				for (Edge potentialDanglingEdgeInOverlap : incomingEdgesInOverlapToCheck) {
+					// Da der Knoten durch die zweite Regel gelöscht wird müssen auch all seine Kanten 
+					// mit denen er im Overlap verbunden ist durch die zweite REgel gelöscht werden
+					Node sourceNodeOfPotentialDanglingEdgeInOverlap = potentialDanglingEdgeInOverlap.getSource();
+					Node sourceNodeOfPotentialDanglingEdgeInRule2 = overlapToL2.get(sourceNodeOfPotentialDanglingEdgeInOverlap); //könnte null zurückgeben!
+					if(sourceNodeOfPotentialDanglingEdgeInRule2 != null){
+						Edge potentialDanglingEdgeInRule2 = sourceNodeOfPotentialDanglingEdgeInRule2.getOutgoing(potentialDanglingEdgeInOverlap.getType(), l2Deleting);
+						if(potentialDanglingEdgeInRule2 == null)
+							danglingEdges.add(potentialDanglingEdgeInOverlap);
+					}else {
+						danglingEdges.add(potentialDanglingEdgeInOverlap);
+					}
+				}
+				EList<Edge> outgoingEdgesInOverlapToCheck = nodeInOverlapToBeDeletedByRule2.getOutgoing();
+				for (Edge potentialDanglingEdgeInOverlap : outgoingEdgesInOverlapToCheck) {
+					// Da der Knoten durch die zweite Regel gelöscht wird müssen auch all seine Kanten 
+					// mit denen er im Overlap verbunden ist durch die zweite REgel gelöscht werden
+					Node targetNodeOfPotentialDanglingEdgeInOverlap = potentialDanglingEdgeInOverlap.getTarget();
+					Node targetNodeOfPotentialDanglingEdgeInRule2 = overlapToL2.get(targetNodeOfPotentialDanglingEdgeInOverlap); //könnte null zurückgeben!
+					if(targetNodeOfPotentialDanglingEdgeInRule2 != null){
+						Edge potentialDanglingEdgeInRule2 = targetNodeOfPotentialDanglingEdgeInRule2.getIncoming(potentialDanglingEdgeInOverlap.getType(), l2Deleting);
+						if(potentialDanglingEdgeInRule2 == null)
+							danglingEdges.add(potentialDanglingEdgeInOverlap);
+					}else {
+						danglingEdges.add(potentialDanglingEdgeInOverlap);
+					}
+				}
+				//TODO: kannes sein, dass hier die asugehenden Kanten der ersten REgel vernachlässigt werden? Auch diese dürfen nicht hängend bleiben?
+				// Sobald es durch Regel1 noch weitere ausgehende Kanten gibt, die nicht durch REgel2 abgedeckt sind kommt es zu eienr dangling edge und somit invaliden conflictReasons
+				// Allerdings din ddie KAnten dabei ausgenommen, die bereits durch den overlap abgedeckt waren!
+				// Im Umkehrschluss heißt das, dass alle dem Knoten anhängen Kanten in Regel1 ausgenommen sind, die bereits durch den Graph abgedeckt sind.
+				Node associatedNodeInRule1 = overlapToL1.get(nodeInOverlapToBeDeletedByRule2);
+				// alle Kanten prüfen, ob diese bereits durch den Graph abgedeckt sind
+				// oder
+				EList<Edge> allIncomingEdgesInRule1ConnectedToDeletedNodeByRule2 = associatedNodeInRule1.getIncoming();
+				for(Edge incomingEdgeInRule1 : allIncomingEdgesInRule1ConnectedToDeletedNodeByRule2){
+					//TODO: Wenn eine Kante vom gleichen Typ in gleicher Richtung an diesem Knoten auch bereits von Regel2 gelöscht wird, so ist diese als potentielle dangling-edge ausgenommen!
+					EList<Edge> incomingEdgesInRule2OfType = l2Deleting.getIncoming(incomingEdgeInRule1.getType());
+					boolean referenceDeletionByRule2 = false;
+					for(Edge incomingEdgeInRule2OfType : incomingEdgesInRule2OfType){
+						if(incomingEdgeInRule2OfType.getAction().getType() == Action.Type.DELETE)
+							referenceDeletionByRule2 = true;
+					}
+					if(!referenceDeletionByRule2){
+						Node sourceOfIncomingInRule1 = incomingEdgeInRule1.getSource();
+						Node sourceNodeInOverlap = l1ToOverlap.get(sourceOfIncomingInRule1);
+						if(sourceNodeInOverlap == null){
+							// wenn es den verbundenen Knoten der Regel1 nicht im Overlap gibt, dann kann die zweite Regel nicht 
+							// TODO: überprüfen wie es sich verhält, wenn die zweite REgel einfach das größere löschende Muster hat und das löschende Muster der ersten Regel nur ein Teil dessen ist.
+							// Aber dann würde vermutlich die Anwendung von Regel1 zu dangling Kanten der Regel 2 führen. Wo ist das abgedeckt?
+							danglingEdges.add(incomingEdgeInRule1);
+						}
+					}
+				}
+				EList<Edge> allOutgoingEdgesInRule1ConnectedToDeletedNodeByRule2 = associatedNodeInRule1.getOutgoing();
+				for(Edge outgoingEdgeInRule1 : allOutgoingEdgesInRule1ConnectedToDeletedNodeByRule2){
+					//TODO: Wenn eine Kante vom gleichen Typ in gleicher Richtung an diesem Knoten auch bereits von Regel2 gelöscht wird, so ist diese als potentielle dangling-edge ausgenommen!
+					EList<Edge> outgoingEdgesInRule2OfType = l2Deleting.getOutgoing(outgoingEdgeInRule1.getType());
+					boolean referenceDeletionByRule2 = false;
+					for(Edge outgoingEdgeInRule2OfType : outgoingEdgesInRule2OfType){
+						if(outgoingEdgeInRule2OfType.getAction().getType() == Action.Type.DELETE)
+							referenceDeletionByRule2 = true;
+					}
+					if(!referenceDeletionByRule2){
+						Node targetOfOutgoingInRule1 = outgoingEdgeInRule1.getTarget();
+						Node targetNodeInOverlap = l1ToOverlap.get(targetOfOutgoingInRule1);
+						if(targetNodeInOverlap == null){
+							// wenn es den verbundenen Knoten der Regel1 nicht im Overlap gibt, dann kann die zweite Regel nicht 
+							// TODO: überprüfen wie es sich verhält, wenn die zweite REgel einfach das größere löschende Muster hat und das löschende Muster der ersten Regel nur ein Teil dessen ist.
+							// Aber dann würde vermutlich die Anwendung von Regel1 zu dangling Kanten der Regel 2 führen. Wo ist das abgedeckt?
+							danglingEdges.add(outgoingEdgeInRule1);
+						}
+					}
+				}
+			}
+		}
+
+		System.out.println(mappingInRule2.get(0).getImage().getGraph().getNodes().size());
 		System.out.println("found "+danglingEdges.size()+ " dangling edges: "+danglingEdges);
 		return danglingEdges;
 	}
@@ -878,6 +990,46 @@ public class AtomicCoreCPA {
 	
 	public class ConflictReason extends Span {
 		
+		/* (non-Javadoc)
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = super.hashCode();
+			result = prime * result + getOuterType().hashCode();
+			result = prime * result + ((originMCRs == null) ? 0 : originMCRs.hashCode());
+			return result;
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (!super.equals(obj)) {
+				return false;
+			}
+			if (!(obj instanceof ConflictReason)) {
+				return false;
+			}
+			ConflictReason other = (ConflictReason) obj;
+			if (!getOuterType().equals(other.getOuterType())) {
+				return false;
+			}
+			if (originMCRs == null) {
+				if (other.originMCRs != null) {
+					return false;
+				}
+			} else if (!originMCRs.equals(other.originMCRs)) {
+				return false;
+			}
+			return true;
+		}
+
 		Set<ModelElement> deletionElementsInRule1;
 		Set<MinimalConflictReason> originMCRs;
 		
@@ -905,6 +1057,7 @@ public class AtomicCoreCPA {
 			}else {
 				// wenn der Konstruktur durch einen super call von der Klasse MinimalConflictReason aufgerufen wurde und 'minimalConflictReason' wirklich vom Typ "Span" ist.
 				this.deletionElementsInRule1 = getDeletionElementsOfSpan(minimalConflictReason);
+				originMCRs = new HashSet<MinimalConflictReason>();
 			}
 			
 		}
@@ -953,6 +1106,10 @@ public class AtomicCoreCPA {
 		
 		private Set<ModelElement> getDeletionElementsOfSpan(Span minimalConflictReason) {
 			return getDeletionElementsOfSpan(minimalConflictReason.getMappingsInRule1(), minimalConflictReason.getGraph(), minimalConflictReason.getMappingsInRule2());
+		}
+
+		private AtomicCoreCPA getOuterType() {
+			return AtomicCoreCPA.this;
 		}
 
 	}
@@ -1191,8 +1348,10 @@ public class AtomicCoreCPA {
 			remainingMCR.remove(currentMCR);
 			
 			conflictReason.addAll(computeConflictReasons(currentMCR, remainingMCR));
+			ConflictReason singleMcrCr = new ConflictReason(currentMCR);
+			conflictReason.add(singleMcrCr);
 		}
-		conflictReason.addAll(minimalConflictReasons); //Die einzelnen MCR sind auch CR. Dementsprechend gilt immer: CR.size() >= MCR.size() korrekt?
+//		conflictReason.addAll(minimalConflictReasons); //Die einzelnen MCR sind auch CR. Dementsprechend gilt immer: CR.size() >= MCR.size() korrekt?
 		return conflictReason;
 	}
 	
@@ -1204,13 +1363,14 @@ public class AtomicCoreCPA {
 				// (17.04.2017) ERKENNTNIS: es dürfen keine MCRs vereinigt werden die auf den gleichen "deletionElements" basieren!
 				if(!crAndMcrHaveCommonDeletionElement(currentCR, combinedMCR)){
 					ConflictReason conflictReason = findCommonNodesAndJoinToNewConflictReason(currentCR, combinedMCR/*, commonNodes*/);
-					if(conflictReason != null)
+					if(conflictReason != null){
 						resultConflictReasons.add(conflictReason);
-					
-					//weitere Kombinationen aus neuen ConflictReason mit restlichen MCR bilden:
-					Set<MinimalConflictReason> remainingMCR = new HashSet<MinimalConflictReason>(combinationMCR);
-					remainingMCR.removeAll(processedMCR);
-					resultConflictReasons.addAll(computeConflictReasons(conflictReason, remainingMCR));
+						
+						//weitere Kombinationen aus neuen ConflictReason mit restlichen MCR bilden:
+						Set<MinimalConflictReason> remainingMCR = new HashSet<MinimalConflictReason>(combinationMCR);
+						remainingMCR.removeAll(processedMCR);
+						resultConflictReasons.addAll(computeConflictReasons(conflictReason, remainingMCR));
+					}
 				}
 		}
 		return resultConflictReasons;
@@ -1259,11 +1419,33 @@ public class AtomicCoreCPA {
 //					span2.getMappingIntoRule2(nodeOfSpan2);
 					boolean sameImageInRule1 = (span1.getMappingIntoRule1(nodeOfSpan1).getImage() == span2.getMappingIntoRule1(nodeOfSpan2).getImage());
 					boolean sameImageInRule2 = (span1.getMappingIntoRule2(nodeOfSpan1).getImage() == span2.getMappingIntoRule2(nodeOfSpan2).getImage());
-					if(sameImageInRule1 && sameImageInRule2)
+					if(sameImageInRule1 && sameImageInRule2){
 						nodeInGraph2ToNodeInGraph1.put(nodeOfSpan2, nodeOfSpan1);
+					} else if (sameImageInRule1 ^ sameImageInRule2) {
+						System.err.println("ERROR!!! - found illegal situation!!!1");
+						System.err.println("ERROR!!! - found illegal situation!!!2");
+						System.err.println("ERROR!!! - found illegal situation!!!3");
+						System.err.println("ERROR!!! - found illegal situation!!!4");
+						System.err.println("ERROR!!! - found illegal situation!!!5");
+						return null;
+					}
 				}
 			}
 		}
+		
+		
+//		TODO: hier fehlt scheinbar die Überprüfung, dass es durch den join zweier MCR nicht zu einerZuordnung eines Knotens einer Regel
+//		zu mehreren Knoten der anderen Regel kommt!
+//		Wie lässt sich dies bewerkstelligen?
+//		Ist dies nicht der Fall, wenn bei den beiden booleschen Werten oben einer von beiden True zurückgibt und der andere false?
+		// DONE!!!! in else-if Block mit "return null"
+		
+		if(nodeInGraph2ToNodeInGraph1.size() == 0){
+			System.err.println("gibts das? Macht für eienn 'join' eigentlich keien Sinn!");
+			return null;
+		}
+			
+			
 		
 		// Wie "Join" von zwei Spans ermöglichen?
 		// Originalspans sollen unverändert bleiben!

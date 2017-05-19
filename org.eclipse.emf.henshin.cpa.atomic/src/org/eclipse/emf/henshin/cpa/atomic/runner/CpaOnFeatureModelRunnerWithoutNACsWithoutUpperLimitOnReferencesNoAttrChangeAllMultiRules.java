@@ -44,7 +44,7 @@ public class CpaOnFeatureModelRunnerWithoutNACsWithoutUpperLimitOnReferencesNoAt
 
 		String projectPath = filePath.replaceAll("bin", "");
 		System.out.println(projectPath);
-		String subDirectoryPath = "testData\\featureModelingWithoutUpperLimitsOnReferences\\fmedit_noNACs_noAttrChange\\rules\\";
+		String subDirectoryPath = "testData\\featureModelingWithoutUpperLimitsOnReferences\\fmedit_noAmalgamation_noNACs_noAttrChange_additionalPreserveProgrammatic\\normal_rules\\";
 		String fullSubDirectoryPath = projectPath + subDirectoryPath;
 		
 		Runner runner = new Runner();

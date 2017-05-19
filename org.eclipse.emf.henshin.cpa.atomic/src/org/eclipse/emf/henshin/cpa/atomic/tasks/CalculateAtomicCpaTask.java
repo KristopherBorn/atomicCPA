@@ -11,6 +11,8 @@ import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictReason;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.model.Edge;
+import org.eclipse.emf.henshin.model.Mapping;
 import org.eclipse.emf.henshin.model.Rule;
 
 public class CalculateAtomicCpaTask implements Callable<List<ConflictAtom>> {
@@ -60,12 +62,23 @@ public class CalculateAtomicCpaTask implements Callable<List<ConflictAtom>> {
 		}
 		long conflictReasonStartTime = System.currentTimeMillis();
 		Set<ConflictReason> conflictReasons = atomicCoreCPA.computeConflictReason(minimalConflictReasons);
+		
+		Set<ConflictReason> filteredConflictReasons = new HashSet<ConflictReason>(); 
+		for(ConflictReason conflictReason : conflictReasons){
+			List<Mapping> mappingsInRule1 = conflictReason.getMappingsInRule1();
+			List<Mapping> mappingsInRule2 = conflictReason.getMappingsInRule2();
+			List<Edge> danglingEdges = atomicCoreCPA.findDanglingEdgesByLHSOfRule2(mappingsInRule1, secondRule, mappingsInRule2);
+			if(danglingEdges.size() == 0){
+				filteredConflictReasons.add(conflictReason);
+			}
+		}
+
 		long conflictReasonEndTime = System.currentTimeMillis();
 		long conflictReasonAdditionalRunTime = conflictReasonEndTime - conflictReasonStartTime;
 		long conflictReasonOverallRuneTime = conflictAtomRunTime + conflictReasonAdditionalRunTime;
 		
 		resultKeeper.setConflictReasonOverallTime(conflictReasonOverallRuneTime);
-		resultKeeper.setConflictReasons(conflictReasons);
+		resultKeeper.setConflictReasons(filteredConflictReasons);
 		
 		return computeConflictAtoms;
 	}

@@ -35,7 +35,7 @@ public class ConflictsOfSurveyRefactoringsRunner extends Runner{
 		Runner runner = new Runner();
 		runner.setNoApplicationConditions(true);
 		runner.setNoMultirules(true);
-		runner.setAnalysisKinds(false, false, true, false, true, false);
+		runner.setAnalysisKinds(false, false, false, false, true, false);
 		runner.run(fullSubDirectoryPath, deactivatedRules);
 	}
 }

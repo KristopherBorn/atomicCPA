@@ -47,6 +47,8 @@ public class DirectoryAnalyser {
 		}
 		
 		public void printAllResultsOnConsole(){
+			System.out.println("-------------------------------------------------------------");
+			System.out.println("\\/ \\/ \\/ Metrics of rules in directory \\/ \\/ \\/");
 			System.out.println("numberOfFiles: \t \t \t"+numberOfFiles);
 			System.out.println("numberOfFilesWithUnits: \t"+numberOfFilesWithUnits);
 			System.out.println("numberOfRules: \t \t \t"+numberOfRules);
@@ -56,6 +58,7 @@ public class DirectoryAnalyser {
 			System.out.println("numberOfMultiRules: \t \t"+numberOfMultiRules);			
 			System.out.println("numberOfCreatingRules: \t \t"+numberOfCreatingRules);	
 			System.out.println("numberOfDeletingRules: \t \t"+numberOfDeletingRules);	
+			System.out.println("-------------------------------------------------------------");
 		}
 		
 	}

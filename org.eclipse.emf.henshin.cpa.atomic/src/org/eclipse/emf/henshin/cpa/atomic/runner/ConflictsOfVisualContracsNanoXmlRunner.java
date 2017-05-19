@@ -35,13 +35,13 @@ public class ConflictsOfVisualContracsNanoXmlRunner extends Runner{
 
 		String projectPath = filePath.replaceAll("bin", "");
 		System.out.println(projectPath);
-		String subDirectoryPath = "testData\\visualContracts-nanoXML\\";
+		String subDirectoryPath = "testData\\visualContracts-nanoXML\\original\\";
 		String fullSubDirectoryPath = projectPath + subDirectoryPath;
 		
 		Runner runner = new Runner();
 		runner.setNoApplicationConditions(true);
 		runner.setNoMultirules(true);
-		runner.setAnalysisKinds(false, false, true, false, true, false);
+		runner.setAnalysisKinds(false, false, false, false, true, false);
 		runner.run(fullSubDirectoryPath, deactivatedRules);
 	}
 }

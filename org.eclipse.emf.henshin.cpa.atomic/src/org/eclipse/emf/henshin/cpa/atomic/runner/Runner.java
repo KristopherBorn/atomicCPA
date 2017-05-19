@@ -100,34 +100,6 @@ public class Runner {
 		
 		List<Rule> allLoadedRules = loadAllRulesFromFileSystemPaths(pathsToHenshinFiles, deactivatedRules);
 		
-		List<Logger2> loggers = new LinkedList<Logger2>();
-		Logger2 deleteUseLogger = new Logger2(Logger2.LogData.DELTE_USE_CONFLICTS, allLoadedRules);
-		loggers.add(deleteUseLogger);
-		Logger2 produceUseLogger = new Logger2(Logger2.LogData.PRODUCE_USE_DEPENDENCY, allLoadedRules);
-		loggers.add(produceUseLogger);
-		
-		Logger2 essentialDeleteUseLogger = new Logger2(Logger2.LogData.ESSENTIAL_DELTE_USE_CONFLICTS, allLoadedRules);
-		loggers.add(essentialDeleteUseLogger);
-		Logger2 essentialProduceUseLogger = new Logger2(Logger2.LogData.ESSENTIAL_PRODUCE_USE_DEPENDENCY, allLoadedRules);
-		loggers.add(essentialProduceUseLogger);
-		
-		Logger2 conflictAtomCandidateLogger = new Logger2(Logger2.LogData.CONFLICT_CANDIDATE, allLoadedRules);
-		loggers.add(conflictAtomCandidateLogger);
-		Logger2 conflictAtomLogger = new Logger2(Logger2.LogData.CONFLICT_ATOM, allLoadedRules);
-		loggers.add(conflictAtomLogger);
-		Logger2 minimalConflictReasonLogger = new Logger2(Logger2.LogData.MINIMAL_CONFLICT_REASON, allLoadedRules);
-		loggers.add(minimalConflictReasonLogger);
-		Logger2 conflictReasonLogger = new Logger2(Logger2.LogData.CONFLICT_REASON, allLoadedRules);
-		loggers.add(conflictReasonLogger);
-		
-		Logger2 dependencyAtomCandidateLogger = new Logger2(Logger2.LogData.DEPENDENCY_CANDIDATE, allLoadedRules);
-		loggers.add(dependencyAtomCandidateLogger);
-		Logger2 dependencyAtomLogger = new Logger2(Logger2.LogData.DEPENDENCY_ATOM, allLoadedRules);
-		loggers.add(dependencyAtomLogger);
-		Logger2 minimalDependencyReasonLogger = new Logger2(Logger2.LogData.MINIMAL_DEPENDENCY_REASON, allLoadedRules);
-		loggers.add(minimalDependencyReasonLogger);
-		Logger2 dependencyReasonLogger = new Logger2(Logger2.LogData.DEPENDENCY_REASON, allLoadedRules);
-		loggers.add(dependencyReasonLogger);
 		
 
 		// initialisieren der Ergebnisspeicher:
@@ -163,6 +135,36 @@ public class Runner {
 		List<Rule> copiesOfRulesWithoutDeletion = buildCopiesOfRulesWithoutDeletion(allLoadedRules);
 //		List<Rule> copiesOfRulesWithoutDeletion = allLoadedRules;
 
+		
+		List<Logger2> loggers = new LinkedList<Logger2>();
+		Logger2 deleteUseLogger = new Logger2(Logger2.LogData.DELTE_USE_CONFLICTS, allLoadedRules);
+		loggers.add(deleteUseLogger);
+		Logger2 produceUseLogger = new Logger2(Logger2.LogData.PRODUCE_USE_DEPENDENCY, allLoadedRules);
+		loggers.add(produceUseLogger);
+		
+		Logger2 essentialDeleteUseLogger = new Logger2(Logger2.LogData.ESSENTIAL_DELTE_USE_CONFLICTS, allLoadedRules);
+		loggers.add(essentialDeleteUseLogger);
+		Logger2 essentialProduceUseLogger = new Logger2(Logger2.LogData.ESSENTIAL_PRODUCE_USE_DEPENDENCY, allLoadedRules);
+		loggers.add(essentialProduceUseLogger);
+		
+		Logger2 conflictAtomCandidateLogger = new Logger2(Logger2.LogData.CONFLICT_CANDIDATE, allLoadedRules);
+		loggers.add(conflictAtomCandidateLogger);
+		Logger2 conflictAtomLogger = new Logger2(Logger2.LogData.CONFLICT_ATOM, allLoadedRules);
+		loggers.add(conflictAtomLogger);
+		Logger2 minimalConflictReasonLogger = new Logger2(Logger2.LogData.MINIMAL_CONFLICT_REASON, allLoadedRules);
+		loggers.add(minimalConflictReasonLogger);
+		Logger2 conflictReasonLogger = new Logger2(Logger2.LogData.CONFLICT_REASON, allLoadedRules);
+		loggers.add(conflictReasonLogger);
+		
+		Logger2 dependencyAtomCandidateLogger = new Logger2(Logger2.LogData.DEPENDENCY_CANDIDATE, allLoadedRules);
+		loggers.add(dependencyAtomCandidateLogger);
+		Logger2 dependencyAtomLogger = new Logger2(Logger2.LogData.DEPENDENCY_ATOM, allLoadedRules);
+		loggers.add(dependencyAtomLogger);
+		Logger2 minimalDependencyReasonLogger = new Logger2(Logger2.LogData.MINIMAL_DEPENDENCY_REASON, allLoadedRules);
+		loggers.add(minimalDependencyReasonLogger);
+		Logger2 dependencyReasonLogger = new Logger2(Logger2.LogData.DEPENDENCY_REASON, allLoadedRules);
+		loggers.add(dependencyReasonLogger);
+		
 		
 //		Namen müssen dabei adaptiert werden, sonst ist nach dem Export bei der Ansteuerung von agg nicht klar welche Regel die erste und welche die zweite ist.
 		// dennoch kann (sollte!) beim loggen der Ergebnisse wieder der original name verwendet werden - DONE!
@@ -272,6 +274,13 @@ public class Runner {
 									
 									//TODO: hier fehlt ncoh der entsprechende Teil für die AtomiDependencyAnalyse!
 									if (runAtomicConflictAnalysis) {
+										
+										if(firstRule.getName().contains("28085"))
+											System.out.println("28085");
+										if(firstRule.getName().contains("28086"))
+											System.out.println("28086");
+											
+										
 //										StringBuffer runTimesOfRuleCombination = new StringBuffer();
 										StringBuffer amountOfDeleteUseConflictsOfRulecombination = new StringBuffer();
 										
