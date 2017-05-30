@@ -34,8 +34,6 @@ import org.eclipse.emf.henshin.model.impl.EdgeImpl;
 import org.eclipse.emf.henshin.model.impl.HenshinFactoryImpl;
 import org.eclipse.emf.henshin.model.impl.MappingListImpl;
 
-import de.imotep.featuremodel.variability.metamodel.FeatureModel.FeatureModelPackage;
-
 public class AtomicCoreCPA {
 
 	// TODO: Felder für Candidates und MinimalReasons einführen - DONE
