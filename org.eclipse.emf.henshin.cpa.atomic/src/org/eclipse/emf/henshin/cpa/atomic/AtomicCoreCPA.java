@@ -549,7 +549,7 @@ public class AtomicCoreCPA {
 					}
 				}
 				//TODO: kannes sein, dass hier die asugehenden Kanten der ersten REgel vernachlässigt werden? Auch diese dürfen nicht hängend bleiben?
-				// Sobald es durch Regel1 noch weitere ausgehende Kanten gibt, die nicht durch REgel2 abgedeckt sind kommt es zu eienr dangling edge und somit invaliden conflictReasons
+				// Sobald es durch Regel1 noch weitere ausgehende Kanten gibt, die nicht durch REgel2 abgedeckt sind kommt es zu eienr dangling edge und somit invaliden initialReasons
 				// Allerdings din ddie KAnten dabei ausgenommen, die bereits durch den overlap abgedeckt waren!
 				// Im Umkehrschluss heißt das, dass alle dem Knoten anhängen Kanten in Regel1 ausgenommen sind, die bereits durch den Graph abgedeckt sind.
 				Node associatedNodeInRule1 = overlapToL1.get(nodeInOverlapToBeDeletedByRule2);
@@ -974,7 +974,7 @@ public class AtomicCoreCPA {
 
 	}
 	
-	public class MinimalConflictReason extends ConflictReason {
+	public class MinimalConflictReason extends InitialReason {
 
 		public MinimalConflictReason(Span minimalConflictReason) {
 			super(minimalConflictReason);
@@ -986,7 +986,7 @@ public class AtomicCoreCPA {
 		
 	}
 	
-	public class ConflictReason extends Span {
+	public class InitialReason extends Span {
 		
 		/* (non-Javadoc)
 		 * @see java.lang.Object#hashCode()
@@ -1011,10 +1011,10 @@ public class AtomicCoreCPA {
 			if (!super.equals(obj)) {
 				return false;
 			}
-			if (!(obj instanceof ConflictReason)) {
+			if (!(obj instanceof InitialReason)) {
 				return false;
 			}
-			ConflictReason other = (ConflictReason) obj;
+			InitialReason other = (InitialReason) obj;
 			if (!getOuterType().equals(other.getOuterType())) {
 				return false;
 			}
@@ -1045,7 +1045,7 @@ public class AtomicCoreCPA {
 			return deletionElementsInRule1;
 		}
 
-		public ConflictReason(Span minimalConflictReason) {
+		public InitialReason(Span minimalConflictReason) {
 			super(minimalConflictReason);
 			if(minimalConflictReason instanceof MinimalConflictReason){
 				MinimalConflictReason mcr = (MinimalConflictReason) minimalConflictReason;
@@ -1060,7 +1060,7 @@ public class AtomicCoreCPA {
 			
 		}
 		
-		public ConflictReason(List<Mapping> mappingsOfNewSpanInRule1, Graph graph1Copy,
+		public InitialReason(List<Mapping> mappingsOfNewSpanInRule1, Graph graph1Copy,
 				List<Mapping> mappingsOfNewSpanInRule2, Set<MinimalConflictReason> originMCRs) {
 			super(mappingsOfNewSpanInRule1, graph1Copy, mappingsOfNewSpanInRule2);
 			this.deletionElementsInRule1 = getDeletionElementsOfSpan(this);
@@ -1334,54 +1334,54 @@ public class AtomicCoreCPA {
 
 	
 	//TODO: ist dieser "zweistufige" Ansatz überhaupt gut? (Also die Trennung in die zwei Methoden)
-	public Set<ConflictReason> computeConflictReason(Set<MinimalConflictReason> minimalConflictReasons){
-		Set<ConflictReason> conflictReason = new HashSet<ConflictReason>();
-//		Set<ConflictReason> minimalConflictReasonsInternal = new HashSet<ConflictReason>();
+	public Set<InitialReason> computeInitialReason(Set<MinimalConflictReason> minimalConflictReasons){
+		Set<InitialReason> initialReason = new HashSet<InitialReason>();
+//		Set<InitialReason> minimalConflictReasonsInternal = new HashSet<InitialReason>();
 //		for(Span span : minimalConflictReasons){
-//			ConflictReason cr = new ConflictReason(span);
+//			InitialReason cr = new InitialReason(span);
 //			minimalConflictReasonsInternal.add(cr);
 //		}
 		for(MinimalConflictReason currentMCR : minimalConflictReasons){
 			Set<MinimalConflictReason> remainingMCR = new HashSet<MinimalConflictReason>(minimalConflictReasons);
 			remainingMCR.remove(currentMCR);
 			
-			conflictReason.addAll(computeConflictReasons(currentMCR, remainingMCR));
-			ConflictReason singleMcrCr = new ConflictReason(currentMCR);
-			conflictReason.add(singleMcrCr);
+			initialReason.addAll(computeInitialReasons(currentMCR, remainingMCR));
+			InitialReason singleMcrCr = new InitialReason(currentMCR);
+			initialReason.add(singleMcrCr);
 		}
-//		conflictReason.addAll(minimalConflictReasons); //Die einzelnen MCR sind auch CR. Dementsprechend gilt immer: CR.size() >= MCR.size() korrekt?
-		return conflictReason;
+//		initialReason.addAll(minimalConflictReasons); //Die einzelnen MCR sind auch CR. Dementsprechend gilt immer: CR.size() >= MCR.size() korrekt?
+		return initialReason;
 	}
 	
-	private Set<ConflictReason> computeConflictReasons(ConflictReason currentCR, Set<MinimalConflictReason> combinationMCR){
-		Set<ConflictReason> resultConflictReasons = new HashSet<ConflictReason>(); 
-		Set<ConflictReason> processedMCR = new HashSet<ConflictReason>();
+	private Set<InitialReason> computeInitialReasons(InitialReason currentCR, Set<MinimalConflictReason> combinationMCR){
+		Set<InitialReason> resultInitialReasons = new HashSet<InitialReason>(); 
+		Set<InitialReason> processedMCR = new HashSet<InitialReason>();
 		for(MinimalConflictReason combinedMCR : combinationMCR){
 			processedMCR.add(combinedMCR);
 				// (17.04.2017) ERKENNTNIS: es dürfen keine MCRs vereinigt werden die auf den gleichen "deletionElements" basieren!
 				if(!crAndMcrHaveCommonDeletionElement(currentCR, combinedMCR)){
-					//TODO: die Methode 'findCommonNodesAndJoinToNewConflictReason' berücksichtigt nicht, 
+					//TODO: die Methode 'findCommonNodesAndJoinToNewInitialReason' berücksichtigt nicht, 
 					//		dass es auch Fälle gibt in denen die beiden MCR vollkommen 'disjoint' sind, aber dennoch einen gemeinsamen intialReason bilden.
 					//		(Siehe Beispiel aus Festschrift Papier!)
-					ConflictReason conflictReason = findCommonNodesAndJoinToNewConflictReason(currentCR, combinedMCR/*, commonNodes*/);
-					if(conflictReason != null){
-						resultConflictReasons.add(conflictReason);
+					InitialReason initialReason = findCommonNodesAndJoinToNewInitialReason(currentCR, combinedMCR/*, commonNodes*/);
+					if(initialReason != null){
+						resultInitialReasons.add(initialReason);
 						
-						//weitere Kombinationen aus neuen ConflictReason mit restlichen MCR bilden:
+						//weitere Kombinationen aus neuen InitialReason mit restlichen MCR bilden:
 						Set<MinimalConflictReason> remainingMCR = new HashSet<MinimalConflictReason>(combinationMCR);
 						remainingMCR.removeAll(processedMCR);
-						resultConflictReasons.addAll(computeConflictReasons(conflictReason, remainingMCR));
+						resultInitialReasons.addAll(computeInitialReasons(initialReason, remainingMCR));
 					}
 				}
 		}
-		return resultConflictReasons;
+		return resultInitialReasons;
 	}
 	
 	// wenn 
-	private boolean crAndMcrHaveCommonDeletionElement(ConflictReason conflictReasonToBeExtended, MinimalConflictReason extendingMinimalConflictReason) {
-		Set<ModelElement> deletionElementsInConflictReason = conflictReasonToBeExtended.getDeletionElementsInRule1();
+	private boolean crAndMcrHaveCommonDeletionElement(InitialReason initialReasonToBeExtended, MinimalConflictReason extendingMinimalConflictReason) {
+		Set<ModelElement> deletionElementsInInitialReason = initialReasonToBeExtended.getDeletionElementsInRule1();
 		for(ModelElement elementInfMCR : extendingMinimalConflictReason.getDeletionElementsInRule1()){
-			if(deletionElementsInConflictReason.contains(elementInfMCR))
+			if(deletionElementsInInitialReason.contains(elementInfMCR))
 				return true;
 		}
 		return false;
@@ -1396,9 +1396,9 @@ public class AtomicCoreCPA {
 	 * 
 	 * @param span1
 	 * @param span2
-	 * @return a new 
+	 * @return a new InitialReason or <code>null</code> if this ist not possible
 	 */
-	private ConflictReason findCommonNodesAndJoinToNewConflictReason(ConflictReason span1, ConflictReason span2) {
+	private InitialReason findCommonNodesAndJoinToNewInitialReason(InitialReason span1, InitialReason span2) {
 		/**
 		 * Wann sind zwei Knoten in 'Spans' gleich? (Also zwei Knoten im Graph des Span)
 		 * Vermutlich wenn:
@@ -1615,8 +1615,8 @@ public class AtomicCoreCPA {
 		}else {
 			originMCR.addAll(span2.getOriginMCRs());
 		}
-		ConflictReason newConflictReason =  new ConflictReason(mappingsOfNewSpanInRule1, graph1Copy, mappingsOfNewSpanInRule2, originMCR);
+		InitialReason newInitialReason =  new InitialReason(mappingsOfNewSpanInRule1, graph1Copy, mappingsOfNewSpanInRule2, originMCR);
 		
-		return newConflictReason;
+		return newInitialReason;
 	}
 }

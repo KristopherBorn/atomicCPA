@@ -14,7 +14,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil.Copier;
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.InitialReason;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
 import org.eclipse.emf.henshin.model.Module;
@@ -133,13 +133,13 @@ public class MinConflReasonEdgeTest {
 		}
 		
 
-		Set<ConflictReason> computedConflictReason = atomicCoreCPA.computeConflictReason(minimalConflictReasons);
+		Set<InitialReason> computedConflictReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
 		System.err.println("amount of computedConflictReason: "+computedConflictReason.size());
 		
 		// Map<AnzahlMCR, AnzahlCRs>
 		Map<Integer, Integer> amoutOfMCRs = new HashMap<Integer, Integer>();
-		// wie groﬂ (= Anzahl Knoten) sind die ConflictReason? 
-		for(ConflictReason cr : computedConflictReason){
+		// wie groﬂ (= Anzahl Knoten) sind die InitialReason? 
+		for(InitialReason cr : computedConflictReason){
 			int amountOfMCRsInCR = cr.getOriginMCRs().size();
 			Integer amountOfCRs = amoutOfMCRs.get(amountOfMCRsInCR);
 			if(amountOfCRs == null){
@@ -232,13 +232,13 @@ public class MinConflReasonEdgeTest {
 		}
 		
 
-		Set<ConflictReason> computedConflictReason = atomicCoreCPA.computeConflictReason(minimalConflictReasons);
+		Set<InitialReason> computedConflictReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
 		System.err.println("amount of computedConflictReason: "+computedConflictReason.size());
 		
 		// Map<AnzahlMCR, AnzahlCRs>
 		Map<Integer, Integer> amoutOfMCRs = new HashMap<Integer, Integer>();
-		// wie groﬂ (= Anzahl Knoten) sind die ConflictReason? 
-		for(ConflictReason cr : computedConflictReason){
+		// wie groﬂ (= Anzahl Knoten) sind die InitialReason? 
+		for(InitialReason cr : computedConflictReason){
 			int amountOfMCRsInCR = cr.getOriginMCRs().size();
 			Integer amountOfCRs = amoutOfMCRs.get(amountOfMCRsInCR);
 			if(amountOfCRs == null){
@@ -333,13 +333,13 @@ public class MinConflReasonEdgeTest {
 		}
 		
 
-		Set<ConflictReason> computedConflictReason = atomicCoreCPA.computeConflictReason(minimalConflictReasons);
+		Set<InitialReason> computedConflictReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
 		System.err.println("amount of computedConflictReason: "+computedConflictReason.size());
 		
 		// Map<AnzahlMCR, AnzahlCRs>
 		Map<Integer, Integer> amoutOfMCRs = new HashMap<Integer, Integer>();
-		// wie groﬂ (= Anzahl Knoten) sind die ConflictReason? 
-		for(ConflictReason cr : computedConflictReason){
+		// wie groﬂ (= Anzahl Knoten) sind die InitialReason? 
+		for(InitialReason cr : computedConflictReason){
 			int amountOfMCRsInCR = cr.getOriginMCRs().size();
 			Integer amountOfCRs = amoutOfMCRs.get(amountOfMCRsInCR);
 			if(amountOfCRs == null){

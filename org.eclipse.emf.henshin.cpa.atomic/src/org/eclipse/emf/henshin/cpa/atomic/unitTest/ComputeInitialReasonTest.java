@@ -12,7 +12,7 @@ import org.eclipse.emf.henshin.cpa.atomic.DependencyAtom;
 import org.eclipse.emf.henshin.cpa.MinimalConflict;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.InitialReason;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
 import org.eclipse.emf.henshin.model.Graph;
@@ -26,7 +26,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ComputeConflictReasonTest {
+public class ComputeInitialReasonTest {
 
 	final String PATH = "testData/refactoring/";
 	final String henshinFileName = "refactorings.henshin";
@@ -48,7 +48,7 @@ public class ComputeConflictReasonTest {
 	}
 
 	@Test
-		public void compute_decapsulate_pullUp_ConflictReasonTest() {
+		public void compute_decapsulate_pullUp_InitialReasonTest() {
 			AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 			List<ConflictAtom> computedConflictAtoms = atomicCoreCPA.computeConflictAtoms(decapsulateAttributeRule,
 					pullUpEncapsulatedAttributeRule);
@@ -94,21 +94,21 @@ public class ComputeConflictReasonTest {
 			}
 			Assert.assertEquals(2, allMinimalConflictReasons.size());
 			
-			Span conflictReasonOfMethod_3_14_Atom = conflictAtom_Method_3_14.getReasons().iterator().next();
-			Span conflictReasonOfParameter_5_15_Atom = conflictAtom_Parameter_5_15.getReasons().iterator().next();
-	//		System.out.println(conflictReasonOfMethod_3_14_Atom);
-	//		System.out.println(conflictReasonOfParameter_5_15_Atom);
-			Assert.assertTrue(conflictReasonOfMethod_3_14_Atom.equals(conflictReasonOfParameter_5_15_Atom));
+			Span initialReasonOfMethod_3_14_Atom = conflictAtom_Method_3_14.getReasons().iterator().next();
+			Span initialReasonOfParameter_5_15_Atom = conflictAtom_Parameter_5_15.getReasons().iterator().next();
+	//		System.out.println(initialReasonOfMethod_3_14_Atom);
+	//		System.out.println(initialReasonOfParameter_5_15_Atom);
+			Assert.assertTrue(initialReasonOfMethod_3_14_Atom.equals(initialReasonOfParameter_5_15_Atom));
 			
 			Set<MinimalConflictReason> minimalConflictReasons = new HashSet<MinimalConflictReason>();
-			for(Span conflictReason : allMinimalConflictReasons){
-				minimalConflictReasons.add(atomicCoreCPA.new MinimalConflictReason(conflictReason));
+			for(Span minimalConflictReason : allMinimalConflictReasons){
+				minimalConflictReasons.add(atomicCoreCPA.new MinimalConflictReason(minimalConflictReason));
 			}
 			
-			Set<ConflictReason> computeConflictReason = atomicCoreCPA.computeConflictReason(minimalConflictReasons);
-			Assert.assertEquals(3, computeConflictReason.size());
+			Set<InitialReason> computeInitialReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
+			Assert.assertEquals(3, computeInitialReason.size());
 			
-			//TODO: prüfen, dass es 5 CofnlictREason gibt, die sich aus einem zusammensetzen und 3 die sich asu zweien zusammen setzen und einen, der sich aus dreien zusammensetzt!
+			//TODO: prüfen, dass es 5 InitialRason gibt, die sich aus einem zusammensetzen und 3 die sich asu zweien zusammen setzen und einen, der sich aus dreien zusammensetzt!
 			
 			
 	//		TODO: Prüfen!
@@ -120,7 +120,7 @@ public class ComputeConflictReasonTest {
 		}
 
 	@Test
-	public void compute_pullUp_decapsulate_ConflictReasonTest() {
+	public void compute_pullUp_decapsulate_InitialReasonTest() {
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 		List<ConflictAtom> computedConflictAtoms = atomicCoreCPA.computeConflictAtoms(pullUpEncapsulatedAttributeRule, decapsulateAttributeRule);
 		assertEquals(5, computedConflictAtoms.size());
@@ -174,12 +174,12 @@ public class ComputeConflictReasonTest {
 //		Assert.assertTrue(conflictReasonOfMethod_3_14_Atom.equals(conflictReasonOfParameter_5_15_Atom));
 		
 		Set<MinimalConflictReason> minimalConflictReasons = new HashSet<MinimalConflictReason>();
-		for(Span conflictReason : allMinimalConflictReasons){
-			minimalConflictReasons.add(atomicCoreCPA.new MinimalConflictReason(conflictReason));
+		for(Span minimalConflictReason : allMinimalConflictReasons){
+			minimalConflictReasons.add(atomicCoreCPA.new MinimalConflictReason(minimalConflictReason));
 		}
 		
-		Set<ConflictReason> computeConflictReason = atomicCoreCPA.computeConflictReason(minimalConflictReasons);
-		Assert.assertEquals(17, computeConflictReason.size());
+		Set<InitialReason> computedInitialReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
+		Assert.assertEquals(17, computedInitialReason.size());
 		
 		//von diesen 17 potentiellen CRs verletzen 10 die dangling condition. 
 		// Das sind jeweils diejenigen, die die beiden folgenden Conflict Atoms enhalten:
