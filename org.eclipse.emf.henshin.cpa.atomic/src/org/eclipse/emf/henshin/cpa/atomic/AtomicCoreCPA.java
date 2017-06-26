@@ -1360,6 +1360,9 @@ public class AtomicCoreCPA {
 			processedMCR.add(combinedMCR);
 				// (17.04.2017) ERKENNTNIS: es dürfen keine MCRs vereinigt werden die auf den gleichen "deletionElements" basieren!
 				if(!crAndMcrHaveCommonDeletionElement(currentCR, combinedMCR)){
+					//TODO: die Methode 'findCommonNodesAndJoinToNewConflictReason' berücksichtigt nicht, 
+					//		dass es auch Fälle gibt in denen die beiden MCR vollkommen 'disjoint' sind, aber dennoch einen gemeinsamen intialReason bilden.
+					//		(Siehe Beispiel aus Festschrift Papier!)
 					ConflictReason conflictReason = findCommonNodesAndJoinToNewConflictReason(currentCR, combinedMCR/*, commonNodes*/);
 					if(conflictReason != null){
 						resultConflictReasons.add(conflictReason);
