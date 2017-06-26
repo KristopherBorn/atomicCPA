@@ -1392,6 +1392,12 @@ public class AtomicCoreCPA {
 		return null;
 	}
 
+	/**
+	 * 
+	 * @param span1
+	 * @param span2
+	 * @return a new 
+	 */
 	private ConflictReason findCommonNodesAndJoinToNewConflictReason(ConflictReason span1, ConflictReason span2) {
 		/**
 		 * Wann sind zwei Knoten in 'Spans' gleich? (Also zwei Knoten im Graph des Span)
@@ -1404,7 +1410,7 @@ public class AtomicCoreCPA {
 		 * UND:
 		 * 3. Für beide Knoten das Mapping in die zweite Regel das geliche Ziel haben  
 		 */
-		//Ggf. läst sich vom Wissen gebrauch machen, dass sich zwei MCR nur in den nicht-löschenden Knoten überlappen können. IST DAS SO???
+		//Ggf. lässt sich vom Wissen gebrauch machen, dass sich zwei MCR nur in den nicht-löschenden Knoten überlappen können. IST DAS SO???
 		
 		//TODO: Wenn sich zwei MCRs in drei Knoten überlagern können, gibt es dann verschiedene CRs? Solche die sich in zwei und oslche die sich in drei Kntoen überlagern???
 		
@@ -1435,16 +1441,17 @@ public class AtomicCoreCPA {
 		}
 		
 		
-//		TODO: hier fehlt scheinbar die Überprüfung, dass es durch den join zweier MCR nicht zu einerZuordnung eines Knotens einer Regel
+//		TODO: hier fehlt scheinbar die Überprüfung, dass es durch den join zweier MCR nicht zu einer Zuordnung eines Knotens einer Regel
 //		zu mehreren Knoten der anderen Regel kommt!
 //		Wie lässt sich dies bewerkstelligen?
 //		Ist dies nicht der Fall, wenn bei den beiden booleschen Werten oben einer von beiden True zurückgibt und der andere false?
 		// DONE!!!! in else-if Block mit "return null"
 		
-		if(nodeInGraph2ToNodeInGraph1.size() == 0){
-			System.err.println("gibts das? Macht für eienn 'join' eigentlich keien Sinn!");
-			return null;
-		}
+//		if(nodeInGraph2ToNodeInGraph1.size() == 0){
+//			System.err.println("gibts das? Macht für eienn 'join' eigentlich keinen Sinn!");
+			// Das ist der Fall wie im Beispiel der Festschrift. Einzelne MCRs sind vollkommen disjunkt hinsichtlich der Menge an Elementen.
+//			return null;
+//		}
 			
 			
 		
@@ -1553,7 +1560,7 @@ public class AtomicCoreCPA {
 			
 		
 		//TODO: extract to Method?
-		//MAPPINGS - entfernen der überzählingen Mappings durch das verienn von Knoten der beiden Graphs der beiden verinigten Spans!
+		//MAPPINGS - entfernen der überzählingen Mappings durch das vereinen von Knoten der beiden Graphs (der beiden verinigten Spans)!
 		List<Mapping> mappingsInRule1ToRemove = new LinkedList<Mapping>();
 		for(Mapping mappingOfSpan2InRule1 : mappingsOfSpan2InRule1Copies){
 			if(duplicateNodesInCopyOfGraph2.contains(mappingOfSpan2InRule1.getOrigin())){
