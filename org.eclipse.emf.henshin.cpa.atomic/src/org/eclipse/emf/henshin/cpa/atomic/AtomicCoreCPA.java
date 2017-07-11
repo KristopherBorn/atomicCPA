@@ -142,6 +142,9 @@ public class AtomicCoreCPA {
 			List<ModelElement> atomicUsageElements = new LinkedList<ModelElement>();
 			if (el1 instanceof Node) {
 				atomicUsageElements.addAll(rule2.getLhs().getNodes(((Node) el1).getType()));
+					//TODO: nach sub- und super-typ überprüfen!
+					//TODO: überprüfen, ob es Attributbedingungen gibt!
+				
 				// EList<Node> nodes = rule2.getLhs().getNodes(((Node) el1).getType());
 			}
 			if (el1 instanceof Edge) {
@@ -155,7 +158,8 @@ public class AtomicCoreCPA {
 				List<Mapping> rule2Mappings = new LinkedList<Mapping>();
 
 				if (el2 instanceof Node) {
-
+					
+					//TODO: innere Implementierung anpassen!
 					addNodeToGraph(el1, el2, S1, rule1Mappings, rule2Mappings);
 					Span S1span = new Span(rule1Mappings, S1, rule2Mappings);
 					result.add(S1span);
@@ -186,8 +190,11 @@ public class AtomicCoreCPA {
 
 	private Node addNodeToGraph(ModelElement el1, ModelElement el2, Graph S1, List<Mapping> rule1Mappings,
 			List<Mapping> rule2Mappings) {
+		//TODO: hier den gemeinsamen SubTyp beider Knoten verwenden!
 		Node commonNode = henshinFactory.createNode(S1, ((Node) el2).getType(),
 				((Node) el1).getName() + "_" + ((Node) el2).getName());
+		
+		// TODO: beim Erstellen des Knoten auch ggf. die notwendigen Attribute mit erstellen!
 
 		rule1Mappings.add(henshinFactory.createMapping(commonNode, (Node) el1));
 		rule2Mappings.add(henshinFactory.createMapping(commonNode, (Node) el2));
