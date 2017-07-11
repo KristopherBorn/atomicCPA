@@ -160,7 +160,7 @@ public class AtomicCoreCPA {
 				if (el2 instanceof Node) {
 					
 					//TODO: innere Implementierung anpassen!
-					addNodeToGraph(el1, el2, S1, rule1Mappings, rule2Mappings);
+					addNodeToGraph((Node)el1, (Node)el2, S1, rule1Mappings, rule2Mappings);
 					Span S1span = new Span(rule1Mappings, S1, rule2Mappings);
 					result.add(S1span);
 
@@ -188,16 +188,16 @@ public class AtomicCoreCPA {
 		return result;
 	}
 
-	private Node addNodeToGraph(ModelElement el1, ModelElement el2, Graph S1, List<Mapping> rule1Mappings,
+	private Node addNodeToGraph(Node nodeInRule1, Node nodeInRule2, Graph S1, List<Mapping> rule1Mappings,
 			List<Mapping> rule2Mappings) {
 		//TODO: hier den gemeinsamen SubTyp beider Knoten verwenden!
-		Node commonNode = henshinFactory.createNode(S1, ((Node) el2).getType(),
-				((Node) el1).getName() + "_" + ((Node) el2).getName());
+		Node commonNode = henshinFactory.createNode(S1, nodeInRule2.getType(),
+				nodeInRule1.getName() + "_" + nodeInRule2.getName());
 		
 		// TODO: beim Erstellen des Knoten auch ggf. die notwendigen Attribute mit erstellen!
 
-		rule1Mappings.add(henshinFactory.createMapping(commonNode, (Node) el1));
-		rule2Mappings.add(henshinFactory.createMapping(commonNode, (Node) el2));
+		rule1Mappings.add(henshinFactory.createMapping(commonNode, nodeInRule1));
+		rule2Mappings.add(henshinFactory.createMapping(commonNode, nodeInRule2));
 		return commonNode;
 	}
 
