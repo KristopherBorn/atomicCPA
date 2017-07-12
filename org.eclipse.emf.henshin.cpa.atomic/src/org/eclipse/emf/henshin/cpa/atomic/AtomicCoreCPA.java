@@ -15,6 +15,9 @@ import org.eclipse.emf.common.util.BasicEList;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.common.util.URI;
+import org.eclipse.emf.ecore.EAttribute;
+import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.EDataType;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.util.EcoreUtil;
@@ -23,6 +26,7 @@ import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
 //import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA;
 //import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA.Span;
 import org.eclipse.emf.henshin.model.Action;
+import org.eclipse.emf.henshin.model.Attribute;
 import org.eclipse.emf.henshin.model.Edge;
 import org.eclipse.emf.henshin.model.Graph;
 import org.eclipse.emf.henshin.model.HenshinFactory;
@@ -141,9 +145,33 @@ public class AtomicCoreCPA {
 		for (ModelElement el1 : atomicDeletionElements) {
 			List<ModelElement> atomicUsageElements = new LinkedList<ModelElement>();
 			if (el1 instanceof Node) {
+				//TODO: nach sub- und super-typ überprüfen!
+				//TODO: überprüfen, ob es Attribute mit abweichenden konstanten Werten gibt!
+				List<Node> potentialAtomicUsageElements = new LinkedList<Node>();
+				for(Node nodeInLhsOfR2 : rule2.getLhs().getNodes()){
+					boolean r1NodeIsSuperTypeOfR2Node = nodeInLhsOfR2.getType().getESuperTypes().contains(((Node) el1).getType());
+					boolean r2NodeIsSuperTypeOfR1Node = ((Node) el1).getType().getEAllSuperTypes().contains(nodeInLhsOfR2.getType());
+					if(r1NodeIsSuperTypeOfR2Node || r2NodeIsSuperTypeOfR1Node){
+						// Für jedes Attribut der beiden Knoten muss geprüft werden, ob es eine Konstante ist String und Zahlen.
+						// Wenn es eine Konstante ist, dann muss überprüft werden, ob diese übereinstimmen.
+						// Wenn es eine Variable ist, so ist der potentielle Konflikt nur vorhanden wenn die Variable für das entsprechende Attribut beider Knoten und somit den Span identisch sind.
+						boolean differingAttributeConstants = false;
+							for(Attribute attrOfR2 : nodeInLhsOfR2.getAttributes()){
+								if(isPrimitiveDataType(attrOfR2.getType())){
+									// TODO: nur bei festen Werten (String, Char, Int, Double, Long) überprüfen, ob diese für den zugeordneten Knoten ebensfalls fest und abweichend ist.   
+									if(attributeIsParsable(attrOfR2))
+										//TODO: prüfen ob der zugehörige Knoten von R1 auch ein passendes parsable eAttribute hat.
+										if(nodeHasAttributeWithDifferingConstantValue((Node) el1, attrOfR2.getType(), attrOfR2.getValue())/*Knoten aus R1 hat passendes Attribut definiert mit abweichendem parsable Wert*/){
+											differingAttributeConstants = true;
+										}
+								}
+							}
+						if(!differingAttributeConstants) //für beide Knoten ist nicht für eines der Attribute ein abweichender WErt gesetzt.
+							potentialAtomicUsageElements.add(nodeInLhsOfR2);
+					}
+				}				
+				
 				atomicUsageElements.addAll(rule2.getLhs().getNodes(((Node) el1).getType()));
-					//TODO: nach sub- und super-typ überprüfen!
-					//TODO: überprüfen, ob es Attributbedingungen gibt!
 				
 				// EList<Node> nodes = rule2.getLhs().getNodes(((Node) el1).getType());
 			}
@@ -158,11 +186,10 @@ public class AtomicCoreCPA {
 				List<Mapping> rule2Mappings = new LinkedList<Mapping>();
 
 				if (el2 instanceof Node) {
-					
-					//TODO: innere Implementierung anpassen!
-					addNodeToGraph((Node)el1, (Node)el2, S1, rule1Mappings, rule2Mappings);
+					Node newNodeInS1Graph = addNodeToGraph((Node)el1, (Node)el2, S1, rule1Mappings, rule2Mappings);
 					Span S1span = new Span(rule1Mappings, S1, rule2Mappings);
 					result.add(S1span);
+					//TODO: newNodeInS1Graph müssen noch die jeweiligen Attribute hinzugefügt werden!
 
 					// EClass type = ((Node) el2).getType();
 					// EPackage singleEPackageOfDomainModel = type.getEPackage();
@@ -188,10 +215,54 @@ public class AtomicCoreCPA {
 		return result;
 	}
 
+	private boolean nodeHasAttributeWithDifferingConstantValue(Node el1, EAttribute typeOfComparedAttribute, String valueOfComparedAttribute) {
+		Attribute attribute = el1.getAttribute(typeOfComparedAttribute);
+		if(attribute != null){
+			if(attributeIsParsable(attribute)){
+				if(!attribute.getValue().equals(valueOfComparedAttribute))
+					return true;
+			}
+		}
+		return false;
+	}
+
+	private boolean attributeIsParsable(Attribute attrOfR2) {
+//		boolean isParsable = true;
+		if(attrOfR2.getType().toString() == "String"){
+			//check for quotes ("") 
+		}
+		if(attrOfR2.getType().toString() == "Int"){
+			try {
+				Integer.parseInt(attrOfR2.getValue());
+			} catch (NumberFormatException e) {
+				return false;
+			}
+		}
+		if(attrOfR2.getType().toString() == "Double"){
+			//check for quotes ("") 
+		}
+		if(attrOfR2.getType().toString() == "Long"){
+			//check for quotes ("") 
+		}
+		if(attrOfR2.getType().toString() == "Float"){
+			//check for quotes ("") 
+		}
+		return true;
+	}
+
+	private boolean isPrimitiveDataType(EAttribute type) {
+		EDataType eAttributeType = type.getEAttributeType();
+		System.err.println("eAttributeType.getName() "+eAttributeType.getName());
+		//TODO: muss noch vervollständigt werden um (String, Char, Int, Double, Long) zu identifizieren.
+//		if(eAttributeType.getName())
+		return false;
+	}
+
 	private Node addNodeToGraph(Node nodeInRule1, Node nodeInRule2, Graph S1, List<Mapping> rule1Mappings,
 			List<Mapping> rule2Mappings) {
-		//TODO: hier den gemeinsamen SubTyp beider Knoten verwenden!
-		Node commonNode = henshinFactory.createNode(S1, nodeInRule2.getType(),
+		// to support inheritance the subtype of both nodes must be considered 
+		EClass subNodeType = identifySubNodeType(nodeInRule1, nodeInRule2); //TODO: might return null - Handle this!
+		Node commonNode = henshinFactory.createNode(S1, subNodeType,
 				nodeInRule1.getName() + "_" + nodeInRule2.getName());
 		
 		// TODO: beim Erstellen des Knoten auch ggf. die notwendigen Attribute mit erstellen!
@@ -199,6 +270,22 @@ public class AtomicCoreCPA {
 		rule1Mappings.add(henshinFactory.createMapping(commonNode, nodeInRule1));
 		rule2Mappings.add(henshinFactory.createMapping(commonNode, nodeInRule2));
 		return commonNode;
+	}
+
+	/**
+	 * identify the type of the both nodes which is the subtype of the other node. 
+	 * @param node1
+	 * @param node2
+	 * @return returns the subnode type if one of both is, otherwise null. 
+	 */
+	private EClass identifySubNodeType(Node node1, Node node2) {
+		if(node1.getType().equals(node2.getType()))
+			return node1.getType();
+		if(node1.getType().getEAllSuperTypes().contains(node2.getType()))
+			return node1.getType();
+		if(node2.getType().getEAllSuperTypes().contains(node1.getType()))
+			return node2.getType();
+		return null;
 	}
 
 	public void computeMinimalConflictReasons(Rule rule1, Rule rule2, Span s1, Set<Span> reasons) {
@@ -962,16 +1049,18 @@ public class AtomicCoreCPA {
 				Node imageInRule1 = mappingIntoRule1.getImage();
 				if(imageInRule1.eContainer() != rule1.getLhs())
 					return false;
-				if(imageInRule1.getType() !=  node.getType()) //TODO: fix this regarding inheritance!
-					return false;
+//				if(imageInRule1.getType() !=  node.getType()) //TODO: fix this regarding inheritance!
+//					return false;
+					//TODO: muss gleicher, sub oder supertype sein
 				Mapping mappingIntoRule2 = getMappingIntoRule2(node);
 				if(mappingIntoRule2.getImage() == null)
 					return false;
 				Node imageInRule2 = mappingIntoRule2.getImage();
 				if(imageInRule2.eContainer() != rule2.getLhs())
 					return false;
-				if(imageInRule2.getType() !=  node.getType()) //TODO: fix this regarding inheritance!
-					return false;
+//				if(imageInRule2.getType() !=  node.getType()) //TODO: fix this regarding inheritance!
+//					return false;
+				//TODO: muss gleicher, sub oder supertype sein
 				
 			}
 			// Edges of the graph could be checked additionally.
