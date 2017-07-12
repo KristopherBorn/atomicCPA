@@ -1,7 +1,18 @@
 package org.eclipse.emf.henshin.cpa.atomic.unitTest.jevTests;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.InitialReason;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
 import org.eclipse.emf.henshin.cpa.atomic.tester.AtomicTester;
 import org.eclipse.emf.henshin.cpa.atomic.tester.CPATester;
 import org.eclipse.emf.henshin.cpa.atomic.tester.Condition.CP;
@@ -9,6 +20,13 @@ import org.eclipse.emf.henshin.cpa.atomic.tester.Condition.Conditions;
 import org.eclipse.emf.henshin.cpa.atomic.tester.Condition.ICR;
 import org.eclipse.emf.henshin.cpa.atomic.tester.Condition.MCR;
 import org.eclipse.emf.henshin.cpa.atomic.tester.Condition.Node;
+import org.eclipse.emf.henshin.model.Graph;
+import org.eclipse.emf.henshin.model.Module;
+import org.eclipse.emf.henshin.model.Rule;
+import org.eclipse.emf.henshin.model.Unit;
+import org.eclipse.emf.henshin.model.resource.HenshinResourceSet;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -36,6 +54,47 @@ public class AttributeTest {
 		assertTrue("Initial Conflict Reasons is not 1", tester.check(new ICR(1)));
 		assertTrue(_1 + " not found", tester.check(_1));
 		tester.ready();
+	}
+	
+	@Test
+	public void extendedAChangeUseAtomicTest(){
+		
+		
+		final String PATH = "testData/jevsTests/attribute/";
+		final String henshinFileName = "attributeRules.henshin";
+
+		Rule firstRule = null;
+		Rule secondRule = null;
+
+			HenshinResourceSet resourceSet = new HenshinResourceSet(PATH);
+			Module module = resourceSet.getModule(henshinFileName, false);
+
+			for (Unit unit : module.getUnits()) {
+				if (unit.getName().equals(change))
+					firstRule = (Rule) unit;
+				if (unit.getName().equals(use))
+					secondRule = (Rule) unit;
+			}
+		
+		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
+		List<ConflictAtom> computedConflictAtoms = atomicCoreCPA.computeConflictAtoms(firstRule, secondRule);
+		assertEquals(1, computedConflictAtoms.size());
+		
+		Set<Span> allMinimalConflictReasons = new HashSet<Span>();
+		for(ConflictAtom conflictAtom : computedConflictAtoms){
+			Set<Span> reasons = conflictAtom.getReasons();
+			Assert.assertEquals(1, reasons.size());
+			allMinimalConflictReasons.addAll(reasons);
+		}
+		Assert.assertEquals(1, allMinimalConflictReasons.size());
+		
+		Set<MinimalConflictReason> minimalConflictReasons = new HashSet<MinimalConflictReason>();
+		for(Span minimalConflictReason : allMinimalConflictReasons){
+			minimalConflictReasons.add(atomicCoreCPA.new MinimalConflictReason(minimalConflictReason));
+		}
+		
+		Set<InitialReason> computeInitialReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
+		Assert.assertEquals(1, computeInitialReason.size());
 	}
 
 	@Test
