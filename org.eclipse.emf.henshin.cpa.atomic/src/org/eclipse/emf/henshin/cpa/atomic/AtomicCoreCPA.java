@@ -125,7 +125,7 @@ public class AtomicCoreCPA {
 				URI uriOfDeletionEdgeType = EcoreUtil.getURI(deletionEdge.getType());
 				boolean isHoweverAPreserveEdge = false;
 				for (Edge edge : allOutgoing) {
-					if (edge.getTarget() == targetNodeRhs) {
+					if (edge.getTarget() == targetNodeRhs) { //TODO: based on tests this seems to be dead code. Why? Tests missing or superfluous code?
 						// check same name of URI:
 						URI uriOfPotentialAssociatedEdgeType = EcoreUtil.getURI(edge.getType());
 						if (uriOfDeletionEdgeType.toString().equals(uriOfPotentialAssociatedEdgeType.toString()))
@@ -403,11 +403,6 @@ public class AtomicCoreCPA {
 	}
 
 	private Set<Span> findExtensions(Rule rule1, Rule rule2, Span s1, Set<Span> reasons) {
-		if (rule1.getName().contains("Feature_FROM_Feature_children_TO_Feature_Fea")
-				&& rule2.getName().contains("factoring_1-3")) {
-			System.out.println("maybe here begins the mistake!");
-		}
-
 		PushoutResult pushoutResult = constructPushout(rule1, rule2, s1);
 		List<Edge> danglingEdges = findDanglingEdgesByLHSOfRule1(rule1, pushoutResult.getMappingsOfRule1());
 		System.out.println(s1.getGraph().getNodes() + " " + s1.getGraph().getEdges());
