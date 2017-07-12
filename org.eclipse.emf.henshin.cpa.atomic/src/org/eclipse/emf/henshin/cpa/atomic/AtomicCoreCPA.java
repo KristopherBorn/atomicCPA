@@ -106,7 +106,9 @@ public class AtomicCoreCPA {
 		Action deleteAction = new Action(Action.Type.DELETE);
 
 		// TODO: extract to Method!
+		// NODE deletion
 		List<ModelElement> atomicDeletionElements = new LinkedList<ModelElement>(rule1.getActionNodes(deleteAction));
+		// EDGE deletion
 		for (Edge deletionEdge : rule1.getActionEdges(deleteAction)) {
 			Action sourceNodeAction = deletionEdge.getSource().getAction();
 			Action targetNodeAction = deletionEdge.getTarget().getAction();
@@ -142,36 +144,72 @@ public class AtomicCoreCPA {
 					atomicDeletionElements.add(deletionEdge);
 			}
 		}
+		// ATTRIBUTE deletion (also attribute change - change-use-conflicts)
+		Action preserveAction = new Action(Action.Type.PRESERVE);
+		for(Node lhsNode : rule1.getActionNodes(preserveAction)){
+//			System.out.println("lhsNode.getGraph().toString() "+lhsNode.getGraph().toString());
+			// wenn eines der Attribute auf der LHS und RHS voneinader abweicht, so handelt es sich um einen change
+			Node rhsNode = rule1.getMappings().getImage(lhsNode, rule1.getRhs());
+			boolean attributeChanged = false;
+			for(Attribute lhsAttr : lhsNode.getAttributes()){
+				Attribute rhsAttr = rhsNode.getAttribute(lhsAttr.getType());
+				if(!lhsAttr.getValue().equals(rhsAttr.getValue())){
+					attributeChanged = true;
+				}
+			}
+			if(attributeChanged)
+				atomicDeletionElements.add(lhsNode);
+			
+//			EList<Attribute> actionAttributes = lhsNode.getActionAttributes(deleteAction);
+//			System.err.println("actionAttributes.size() "+actionAttributes.size());
+		}
+		
+		
 		for (ModelElement el1 : atomicDeletionElements) {
 			List<ModelElement> atomicUsageElements = new LinkedList<ModelElement>();
 			if (el1 instanceof Node) {
 				//TODO: nach sub- und super-typ überprüfen!
 				//TODO: überprüfen, ob es Attribute mit abweichenden konstanten Werten gibt!
-				List<Node> potentialAtomicUsageElements = new LinkedList<Node>();
 				for(Node nodeInLhsOfR2 : rule2.getLhs().getNodes()){
 					boolean r1NodeIsSuperTypeOfR2Node = nodeInLhsOfR2.getType().getESuperTypes().contains(((Node) el1).getType());
 					boolean r2NodeIsSuperTypeOfR1Node = ((Node) el1).getType().getEAllSuperTypes().contains(nodeInLhsOfR2.getType());
-					if(r1NodeIsSuperTypeOfR2Node || r2NodeIsSuperTypeOfR1Node){
+					boolean identicalType = nodeInLhsOfR2.getType().equals((((Node) el1).getType()));
+					if(r1NodeIsSuperTypeOfR2Node || r2NodeIsSuperTypeOfR1Node || identicalType){
 						// Für jedes Attribut der beiden Knoten muss geprüft werden, ob es eine Konstante ist String und Zahlen.
 						// Wenn es eine Konstante ist, dann muss überprüft werden, ob diese übereinstimmen.
 						// Wenn es eine Variable ist, so ist der potentielle Konflikt nur vorhanden wenn die Variable für das entsprechende Attribut beider Knoten und somit den Span identisch sind.
-						boolean differingAttributeConstants = false;
+						boolean differingAttributeConstantsLhsR1 = false;
+						boolean differingAttributeConstantsRhsR1 = false;
+						Node el1InRhsOfR1 = rule1.getMappings().getImage((Node)el1, rule1.getRhs());
+						boolean nodeInR1IsDeleted = (el1InRhsOfR1 == null);
 							for(Attribute attrOfR2 : nodeInLhsOfR2.getAttributes()){
 								if(isPrimitiveDataType(attrOfR2.getType())){
 									// TODO: nur bei festen Werten (String, Char, Int, Double, Long) überprüfen, ob diese für den zugeordneten Knoten ebensfalls fest und abweichend ist.   
-									if(attributeIsParsable(attrOfR2))
-										//TODO: prüfen ob der zugehörige Knoten von R1 auch ein passendes parsable eAttribute hat.
-										if(nodeHasAttributeWithDifferingConstantValue((Node) el1, attrOfR2.getType(), attrOfR2.getValue())/*Knoten aus R1 hat passendes Attribut definiert mit abweichendem parsable Wert*/){
-											differingAttributeConstants = true;
+									if(attributeIsParsable(attrOfR2)){
+										if(nodeInR1IsDeleted){											
+											// ÜBERPRÜFUNG des Knoten el1 hinsichtlich delete-use-conflicts
+											//TODO: prüfen ob der zugehörige Knoten von R1 auch ein passendes parsable eAttribute hat.
+											if(nodeHasAttributeWithDifferingConstantValue((Node) el1, attrOfR2.getType(), attrOfR2.getValue())/*Knoten aus LHS von R1 hat passendes Attribut definiert mit abweichendem parsable Wert*/){
+												differingAttributeConstantsLhsR1 = true;
+											}
 										}
+										// ÜBERPRÜFUNG des Knoten el1 hinsichtlich change-use-conflicts
+										if(nodeHasAttributeWithDifferingConstantValue(el1InRhsOfR1, attrOfR2.getType(), attrOfR2.getValue())/*Knoten aus RHS von R1 hat passendes Attribut definiert mit abweichendem parsable Wert*/){
+											differingAttributeConstantsRhsR1 = true;
+										}
+									}
 								}
 							}
-						if(!differingAttributeConstants) //für beide Knoten ist nicht für eines der Attribute ein abweichender WErt gesetzt.
-							potentialAtomicUsageElements.add(nodeInLhsOfR2);
+						if(!differingAttributeConstantsLhsR1 && nodeInR1IsDeleted) 
+							//für beide Knoten ist für keines der Attribute ein abweichender Wert gesetzt.
+							// -> delete-use-conflict möglich
+							atomicUsageElements.add(nodeInLhsOfR2);
+						if(differingAttributeConstantsRhsR1) 
+							//für den der RHS der 1.Regel ist für ein Attribute ein abweichender Wert gesetzt.
+							// -> change-use-conflict 
+							atomicUsageElements.add(nodeInLhsOfR2);
 					}
 				}				
-				
-				atomicUsageElements.addAll(rule2.getLhs().getNodes(((Node) el1).getType()));
 				
 				// EList<Node> nodes = rule2.getLhs().getNodes(((Node) el1).getType());
 			}
@@ -228,33 +266,63 @@ public class AtomicCoreCPA {
 
 	private boolean attributeIsParsable(Attribute attrOfR2) {
 //		boolean isParsable = true;
-		if(attrOfR2.getType().toString() == "String"){
+		EAttribute type = attrOfR2.getType();
+		EDataType eAttributeType = type.getEAttributeType();
+//		eAttributeType.getName()
+		if(attrOfR2.getType().toString() == "EString"){
 			//check for quotes ("") 
 		}
-		if(attrOfR2.getType().toString() == "Int"){
+		if(eAttributeType.getName() == "EInt"){
 			try {
 				Integer.parseInt(attrOfR2.getValue());
 			} catch (NumberFormatException e) {
 				return false;
 			}
+			return true;
 		}
-		if(attrOfR2.getType().toString() == "Double"){
-			//check for quotes ("") 
+		if(attrOfR2.getType().toString() == "EDouble"){
+			try {
+				Double.parseDouble(attrOfR2.getValue());
+			} catch (NumberFormatException e) {
+				return false;
+			}
+			return true;
 		}
-		if(attrOfR2.getType().toString() == "Long"){
-			//check for quotes ("") 
+		if(attrOfR2.getType().toString() == "ELong"){
+			try {
+				Long.parseLong(attrOfR2.getValue());
+			} catch (NumberFormatException e) {
+				return false;
+			}
+			return true;
 		}
-		if(attrOfR2.getType().toString() == "Float"){
-			//check for quotes ("") 
+		if(attrOfR2.getType().toString() == "EFloat"){
+			try {
+				Float.parseFloat(attrOfR2.getValue());
+			} catch (NumberFormatException e) {
+				return false;
+			}
+			return true;
 		}
 		return true;
 	}
 
 	private boolean isPrimitiveDataType(EAttribute type) {
 		EDataType eAttributeType = type.getEAttributeType();
-		System.err.println("eAttributeType.getName() "+eAttributeType.getName());
-		//TODO: muss noch vervollständigt werden um (String, Char, Int, Double, Long) zu identifizieren.
-//		if(eAttributeType.getName())
+		if(eAttributeType != null){			
+			System.err.println("eAttributeType.getName() "+eAttributeType.getName());
+			//TODO: muss noch vervollständigt werden um (String, Char, Int, Double, Long) zu identifizieren.
+			if(eAttributeType.getName().equals("EInt"))
+				return true;
+			if(eAttributeType.getName().equals("EDouble"))
+				return true;
+			if(eAttributeType.getName().equals("ELong"))
+				return true;
+			if(eAttributeType.getName().equals("EString"))
+				return true;
+			if(eAttributeType.getName().equals("EChar"))
+				return true;
+		}
 		return false;
 	}
 
