@@ -153,7 +153,7 @@ public class AtomicCoreCPA {
 			boolean attributeChanged = false;
 			for(Attribute lhsAttr : lhsNode.getAttributes()){
 				Attribute rhsAttr = rhsNode.getAttribute(lhsAttr.getType());
-				if(!lhsAttr.getValue().equals(rhsAttr.getValue())){
+				if(rhsAttr == null || !lhsAttr.getValue().equals(rhsAttr.getValue())){
 					attributeChanged = true;
 				}
 			}
