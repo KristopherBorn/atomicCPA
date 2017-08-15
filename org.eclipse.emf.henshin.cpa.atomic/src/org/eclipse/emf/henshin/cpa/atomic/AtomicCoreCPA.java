@@ -20,9 +20,13 @@ import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EDataType;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EReference;
+import org.eclipse.emf.ecore.EcoreFactory;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.emf.ecore.util.EcoreUtil.Copier;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.PushoutResult;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+//import org.eclipse.emf.henshin.cpa.atomic.unitTest.ConflictReason;
 //import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA;
 //import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA.Span;
 import org.eclipse.emf.henshin.model.Action;
@@ -33,16 +37,19 @@ import org.eclipse.emf.henshin.model.HenshinFactory;
 import org.eclipse.emf.henshin.model.Mapping;
 import org.eclipse.emf.henshin.model.ModelElement;
 import org.eclipse.emf.henshin.model.Node;
+import org.eclipse.emf.henshin.model.Parameter;
 import org.eclipse.emf.henshin.model.Rule;
 import org.eclipse.emf.henshin.model.impl.EdgeImpl;
 import org.eclipse.emf.henshin.model.impl.HenshinFactoryImpl;
 import org.eclipse.emf.henshin.model.impl.MappingListImpl;
+import org.w3c.dom.Attr;
 
 public class AtomicCoreCPA {
 
+	private static final boolean supportInheritance = true;
 	// TODO: Felder für Candidates und MinimalReasons einführen - DONE
 	List<Span> candidates;
-	Set<Span> overallReasons;
+	Set<MinimalConflictReason> overallMinimalConflictReasons;
 	// TODO: Methode zum abrufen dieser einführen - DONE
 	// TODO: in Methode "computeConflictAtoms(...)" die Felder zu beginn zurücksetzen - wird bereits gemacht. - DONE
 
@@ -56,8 +63,8 @@ public class AtomicCoreCPA {
 	/**
 	 * @return the reasons
 	 */
-	public Set<Span> getMinimalConflictReasons() {
-		return overallReasons;
+	public Set<MinimalConflictReason> getMinimalConflictReasons() {
+		return overallMinimalConflictReasons;
 	}
 
 	HenshinFactory henshinFactory = new HenshinFactoryImpl();
@@ -69,20 +76,20 @@ public class AtomicCoreCPA {
 
 		List<ConflictAtom> result = new LinkedList<ConflictAtom>();
 		candidates = computeAtomCandidates(rule1, rule2);
-		overallReasons = new HashSet<>();
+		overallMinimalConflictReasons = new HashSet<MinimalConflictReason>();
 		for (Span candidate : candidates) {
 
-			Set<Span> reasons = new HashSet<>();//
-			computeMinimalConflictReasons(rule1, rule2, candidate, reasons);
+			Set<MinimalConflictReason> minimalConflictReasons = new HashSet<>();//
+			computeMinimalConflictReasons(rule1, rule2, candidate, minimalConflictReasons);
 
 //			if (rule1.getName().contains("Feature_FROM_Feature_children_TO_Feature_Fea")
 //					&& rule2.getName().contains("factoring_1-3")) {
 //				System.out.println("maybe here begins the mistake!");
 //			}
 
-			overallReasons.addAll(reasons); // to know the total amount after the analysisDuration!
-			if (!reasons.isEmpty()) {
-				result.add(new ConflictAtom(candidate, reasons));
+			overallMinimalConflictReasons.addAll(minimalConflictReasons); // to know the total amount after the analysisDuration!
+			if (!minimalConflictReasons.isEmpty()) {
+				result.add(new ConflictAtom(candidate, minimalConflictReasons));
 				// TODO: wieso ein Atom die "reasons" benötigt ist mir noch unklar.
 				// Bzw.was die Datenstruktur "Atom" überhaupt umfasst.
 			}
@@ -106,10 +113,385 @@ public class AtomicCoreCPA {
 		Action deleteAction = new Action(Action.Type.DELETE);
 
 		// TODO: extract to Method!
-		// NODE deletion
+		// NODE deletion - (sammeln aller löschender Knoten von R1)
 		List<ModelElement> atomicDeletionElements = new LinkedList<ModelElement>(rule1.getActionNodes(deleteAction));
-		// EDGE deletion
-		for (Edge deletionEdge : rule1.getActionEdges(deleteAction)) {
+		// EDGE deletion - (sammeln aller löschender Kanten an zwei bewahrenden Knoten von R1)
+		atomicDeletionElements.addAll(identifyAtomicDeletionEdges(rule1));
+		// ATTRIBUTE change - (sammeln aller Knoten mit Attributänderungen von R1)
+		Set<Node> atomicChangeNodes = new HashSet<Node>();
+
+		// ATTRIBUTE deletion or change (also attribute change - change-use-conflicts) - (sammeln preserve Knoten mit geänderten Attributen von R1)
+		Action preserveAction = new Action(Action.Type.PRESERVE);
+		for(Node lhsNode : rule1.getActionNodes(preserveAction)){
+//			System.out.println("lhsNode.getGraph().toString() "+lhsNode.getGraph().toString());
+			// wenn eines der Attribute auf der LHS und RHS voneinader abweicht, so handelt es sich um einen change
+			Node rhsNode = rule1.getMappings().getImage(lhsNode, rule1.getRhs());
+			boolean attributeChanged = false;
+			for(Attribute lhsAttr : lhsNode.getAttributes()){
+				Attribute rhsAttr = rhsNode.getAttribute(lhsAttr.getType());
+				// delete Attr. || change Attr.
+				if(rhsAttr == null || !lhsAttr.getValue().equals(rhsAttr.getValue())){
+					attributeChanged = true;
+					atomicChangeNodes.add(lhsNode);
+					break;
+				}
+			}
+			// CHECK create Attr.
+			if(!attributeChanged){
+				for(Attribute rhsAttr : rhsNode.getAttributes()){
+					Attribute lhsAttr = lhsNode.getAttribute(rhsAttr.getType());
+					// create Attr.
+					if(lhsAttr == null){
+						attributeChanged = true;
+						atomicChangeNodes.add(lhsNode);
+						break;
+					}
+				}
+				
+			}
+			// an dieser Stelle wurde zwar identifiziert, dass es eine Änderung des Attributwertes durch die 
+			// erste Regel in einem preserve Knoten gibt. Ob ein Knoten dieses Typs aber überhaupt in der zweiten 
+			// Regel genutzt wird ist hier noch nicht geklärt 
+		}
+		
+		// IDENTIFIKATION potentieller nutzender Knoten! (fuer delete-use-confl.)
+		// abarbeitung jedes einzelnen deletionElements
+		for (ModelElement el1 : atomicDeletionElements) {
+			List<ModelElement> atomicUsageElements = new LinkedList<ModelElement>();
+			if (el1 instanceof Node) {
+				// nach sub- und super-typ überprüfen!
+				//TODO: überprüfen, ob es Attribute mit abweichenden konstanten Werten gibt!
+				for(Node nodeInLhsOfR2 : rule2.getLhs().getNodes()){
+					boolean r1NodeIsSuperTypeOfR2Node = false;
+					boolean r2NodeIsSuperTypeOfR1Node = false;
+					if(supportInheritance){
+						r1NodeIsSuperTypeOfR2Node = nodeInLhsOfR2.getType().getESuperTypes().contains(((Node) el1).getType());
+						r2NodeIsSuperTypeOfR1Node = ((Node) el1).getType().getEAllSuperTypes().contains(nodeInLhsOfR2.getType());
+					}
+					boolean identicalType = nodeInLhsOfR2.getType().equals((((Node) el1).getType()));
+					
+					//TODO: hier schon den möglichen S-Graph mit dem passenden Knoten erzeugen!
+					// dabei den Typ des weiter unten in der Vererbungshierarchie stehenden Knotens nutzen! 
+					// 		wird bereits in "addNodeToGraph" gemacht
+					Graph S1 = henshinFactory.createGraph();
+					Set<Mapping> rule1Mappings = new HashSet<Mapping>();
+					Set<Mapping> rule2Mappings = new HashSet<Mapping>();
+					Node newNodeInS1Graph = addNodeToGraph((Node)el1, (Node)nodeInLhsOfR2, S1, rule1Mappings, rule2Mappings);
+					Span S1span = new Span(rule1Mappings, S1, rule2Mappings);
+					
+					if(r1NodeIsSuperTypeOfR2Node || r2NodeIsSuperTypeOfR1Node || identicalType){
+						// Für jedes Attribut der beiden Knoten muss geprüft werden, ob es eine Konstante ist String und Zahlen.
+						// Wenn es eine Konstante ist, dann muss überprüft werden, ob diese übereinstimmen.
+						// Wenn es eine Variable ist, so ist der potentielle Konflikt nur vorhanden wenn die Variable für das entsprechende Attribut beider Knoten und somit den Span identisch sind.
+//						boolean differingAttributeConstantsLhsR1 = false;
+//						boolean differingAttributeConstantsRhsR1 = false;
+						Node el1InRhsOfR1 = rule1.getMappings().getImage((Node)el1, rule1.getRhs());
+						boolean nodeInR1IsDeleted = (el1InRhsOfR1 == null);
+							// TODO: hinzufügen und hier gebrauchen machen von einer "Steuervariablen" um das einbeziehen von Attributen zu de-/aktivieren
+						
+						boolean differingConstants = false; 
+						// as soon as both nodes have an attribute with a common attribute with different constant values, 
+						// the analysis can stop early since the both nodes of R1 and R2 do not match to each other. 
+						
+						for(Attribute attrOfR2 : nodeInLhsOfR2.getAttributes()){
+							if(!differingConstants){
+								Attribute attrOfSameTypeInLhsOfR1 = ((Node) el1).getAttribute(attrOfR2.getType());
+								
+								// prüfen, ob es sich beim Attr in R1 um eine Konstanten handelt
+								boolean attrOfR2IsConstant = isAttrValueAConstant(attrOfR2, rule2);
+								if(attrOfSameTypeInLhsOfR1 != null){
+									// prüfen, ob es sich beim Attr in R1 um eine Konstanten handelt
+									boolean attrOfSameTypeInLhsOfR1IsConstant = isAttrValueAConstant(attrOfSameTypeInLhsOfR1, rule1);
+									if(attrOfR2IsConstant && attrOfSameTypeInLhsOfR1IsConstant){
+										//prüfen ob die Werte gleich sind.
+										boolean valuesIdentical = attrOfR2.getValue().equals(attrOfSameTypeInLhsOfR1.getValue());
+										if(valuesIdentical){	// Situation: KONST - KONST									
+											//alles gut!
+											// ein entsprechender Wert im S-Graph bzw. overlap muss gesetzt werden!
+//											newNodeInS1Graph.getAttribute(attrOfR2.getType()).setValue(attrOfR2.getValue()); //wrong code
+											henshinFactory.createAttribute(newNodeInS1Graph, attrOfR2.getType(), attrOfR2.getValue());
+										}else { 	// Situation: KONST - KONST
+											// zwei Konstanten mit abweichenden Werten -> Knoten passen nicht zueinander! 
+											// d.h. "differingConstants" = true
+											differingConstants = true;
+										}
+									}else {
+										// mindestens eines der beiden Attribute ist eine variable
+										// -> alles gut 
+										// wenn eines der beiden Attribute eine Konstante ist muss ein entsprechender Wert im S-Graph bzw. overlap gesetzt werden!
+										if(attrOfR2IsConstant) 	// Situation: VAR - KONST
+//											newNodeInS1Graph.getAttribute(attrOfR2.getType()).setValue(attrOfR2.getValue()); //wrong code
+											henshinFactory.createAttribute(newNodeInS1Graph, attrOfR2.getType(), attrOfR2.getValue());
+										if(attrOfSameTypeInLhsOfR1IsConstant) 	// Situation: KONST - VAR
+//											newNodeInS1Graph.getAttribute(attrOfSameTypeInLhsOfR1.getType()).setValue(attrOfSameTypeInLhsOfR1.getValue()); //wrong code
+											henshinFactory.createAttribute(newNodeInS1Graph, attrOfSameTypeInLhsOfR1.getType(), attrOfSameTypeInLhsOfR1.getValue());
+									}
+									
+								}else {
+									// Attribute des entsprechenden EAttribute Typs war nur in R2 vorhanden!
+									// -> alles gut 
+									//wenn das Attribute in R2 eine Konstante ist muss ein entsprechender Wert im S-Graph bzw. overlap gesetzt werden!
+									if(attrOfR2IsConstant)
+//										newNodeInS1Graph.getAttribute(attrOfR2.getType()).setValue(attrOfR2.getValue()); //wrong code
+										henshinFactory.createAttribute(newNodeInS1Graph, attrOfR2.getType(), attrOfR2.getValue());
+									//TODO: wenn für das EAttribute nur eine VARiable in R2 vorliegt diese auch in den S1-Graph aufnehmen?
+								}
+							}
+						}
+
+						if(!differingConstants){
+							//TODO: bis hierher sind alle Attribute von R2 behandelt worden.
+							// Was fehlt ist die Behandlung der Attribute die nur in R1 vorkommen. 
+							// Wenn es sich dabei um eine Konstante handelt, so sollte diese auch im S-Graph bzw. overlap gesetzt werden!
+							for(Attribute attrOfR1Node : ((Node)el1).getAttributes()){
+								Attribute attributeInR2Node = nodeInLhsOfR2.getAttribute(attrOfR1Node.getType());
+								if(attributeInR2Node == null){ // Attribute nur in R1 Knoten vorhanden.
+									if(isAttrValueAConstant(attrOfR1Node, rule1)){
+//										newNodeInS1Graph.getAttribute(attributeInR1Node.getType()).setValue(attributeInR1Node.getValue()); //wrong code
+										henshinFactory.createAttribute(newNodeInS1Graph, attrOfR1Node.getType(), attrOfR1Node.getValue());
+									}
+									//TODO: wenn für das EAttribute nur eine VARiable in R1 vorliegt diese auch in den S1-Graph aufnehmen?
+								}
+							}
+						}
+						if(!differingConstants)
+							result.add(S1span);
+					}
+				}				
+				
+				// EList<Node> nodes = rule2.getLhs().getNodes(((Node) el1).getType());
+			}
+			if (el1 instanceof Edge) {
+				atomicUsageElements.addAll(rule2.getLhs().getEdges(((Edge) el1).getType()));
+			}
+			
+			
+			// CREATION des Graph S1 und der Mapings in R1 und R2
+			for (ModelElement el2 : atomicUsageElements) {
+
+
+				//findet jetzt schon bei der Identifikation der nutzenden Knoten statt
+//				if (el2 instanceof Node) {
+//					Node newNodeInS1Graph = addNodeToGraph((Node)el1, (Node)el2, S1, rule1Mappings, rule2Mappings);
+//					Span S1span = new Span(rule1Mappings, S1, rule2Mappings);
+//					result.add(S1span);
+//					//TODO: newNodeInS1Graph müssen noch die jeweiligen Attribute hinzugefügt werden!
+//					// um diese erneut zu ermitteln wird der S-Graph bereits oben erzeugt!
+//
+//					// EClass type = ((Node) el2).getType();
+//					// EPackage singleEPackageOfDomainModel = type.getEPackage();
+//					// EFactory eFactoryInstance = singleEPackageOfDomainModel.getEFactoryInstance();
+//					//
+//					// EObject create = eFactoryInstance.create(type);
+//					// el2.eResolveProxy
+//				}
+				if (el2 instanceof Edge) {
+					
+					Graph S1 = henshinFactory.createGraph();
+					Set<Mapping> rule1Mappings = new HashSet<Mapping>();
+					Set<Mapping> rule2Mappings = new HashSet<Mapping>();
+					
+
+					Node commonSourceNode = addNodeToGraph(((Edge) el1).getSource(), ((Edge) el2).getSource(), S1,
+							rule1Mappings, rule2Mappings);
+					Node commonTargetNode = addNodeToGraph(((Edge) el1).getTarget(), ((Edge) el2).getTarget(), S1,
+							rule1Mappings, rule2Mappings);
+					Span S1span = new Span(rule1Mappings, S1, rule2Mappings);
+					result.add(S1span);
+
+					S1.getEdges()
+							.add(henshinFactory.createEdge(commonSourceNode, commonTargetNode, ((Edge) el2).getType()));
+				}
+			}
+		}
+		
+		// IDENTIFIKATION potentieller nutzender Knoten! (fuer change-use-confl.)
+			// abarbeitung jedes einzelnen Elements mit einem AttrChange!
+			// TODO TODO TODO TODO
+			// seperation of concern! Es handelt sich um zwei unterschiedliche Fälle die zwar Ähnlichkeiten aufweisen, 
+			// aber im Programmcode nicht miteinander vermischt werden sollten!
+			// subroutinene die identisch sind können auch als gemeinsame Methode existieren. 
+			// (Dazu die Sub-Methoden sauber definieren um mögliche Unterschiede zu identifizieren!)
+					
+		for (Node el1 : atomicChangeNodes) {
+			List<Node> atomicUsageElements = new LinkedList<Node>();
+				// nach sub- und super-typ überprüfen!
+				for(Node nodeInLhsOfR2 : rule2.getLhs().getNodes()){
+					boolean r1NodeIsSuperTypeOfR2Node = false;
+					boolean r2NodeIsSuperTypeOfR1Node = false;
+					if(supportInheritance){
+						r1NodeIsSuperTypeOfR2Node = nodeInLhsOfR2.getType().getESuperTypes().contains(((Node) el1).getType());
+						r2NodeIsSuperTypeOfR1Node = ((Node) el1).getType().getEAllSuperTypes().contains(nodeInLhsOfR2.getType());
+					}
+					boolean identicalType = nodeInLhsOfR2.getType().equals((((Node) el1).getType()));
+					
+					//TODO: hier schon den möglichen S-Graph mit dem passenden Knoten erzeugen!
+					// dabei den Typ des weiter unten in der Vererbungshierarchie stehenden Knotens nutzen! 
+					// 		wird bereits in "addNodeToGraph" gemacht
+					Graph S1 = henshinFactory.createGraph();
+					Set<Mapping> rule1Mappings = new HashSet<Mapping>();
+					Set<Mapping> rule2Mappings = new HashSet<Mapping>();
+					Node newNodeInS1Graph = addNodeToGraph((Node)el1, (Node)nodeInLhsOfR2, S1, rule1Mappings, rule2Mappings);
+					Span S1span = new Span(rule1Mappings, S1, rule2Mappings);
+					
+					if(r1NodeIsSuperTypeOfR2Node || r2NodeIsSuperTypeOfR1Node || identicalType){
+						
+//						Für jedes Attribut muss geprüft werden, ob es eine Konstante ist String und Zahlen.
+//						Genrell sind je Attribut folgende Fälle zu unterscheiden.
+//						1. Attr wird von R1 geändert und von R2 benutzt 
+//							(verändern kann create&delete des Attr sein, sowie Wertänderung über Konstanten und Variablen. Kurz gesagt: LHS Value != RHS Value)
+//							Ursache des change-use Konflikts -> In Ordnung
+//								Im S1-Graph muss der Wert beider LHS sein. Ist eines von beiden eine Konstante, so ist dieser Wert zu nutzen.
+//								Sind beides Variablen, so bietet es sich an im S1_Graph die namen der Variablen mit einem Unterstrich zu Kontainieren (valR1_valR2)
+//						2. Attr ist nur in einer von beiden Regeln (d.h. das Attr taucht in LHS von R2 oder in beiden Seiten von R1 nicht auf)
+//						3. Attr ist in beiden Regeln und ändert sich in R1 nicht.
+//							Wenn es sich in lhsR1 und lhsR2 und Konstanten handelt müssen diese übereisntimmen.
+//								Andernfalls handelt es sich nicht um einen relevanten 'use' Knoten
+//							handelt es sich bei einem der beiden (oder beiden) um eine Variable, so ist es irrelevant
+							
+							
+						Node el1InRhsOfR1 = rule1.getMappings().getImage((Node)el1, rule1.getRhs());
+							// TODO: hinzufügen und hier gebrauchen machen von einer "Steuervariablen" um das einbeziehen von Attributen zu de-/aktivieren
+						
+						boolean differingConstants = false; 
+						// as soon as both nodes have an attribute with a common attribute with different constant values, 
+						// the analysis can stop early since the both nodes of R1 and R2 do not match to each other. 
+						
+						boolean changeAttrIsUsed = false;
+						// at least one changed attributed has to be used by the node of the second rule. otherwise its not a chnage-use-conflict!
+						// TODO: set up a test case for a situation with a changed attribute that ist not used!
+						
+						for(Attribute attrOfR2 : nodeInLhsOfR2.getAttributes()){
+							if(!differingConstants){
+								Attribute attrOfSameTypeInLhsOfR1 = ((Node) el1).getAttribute(attrOfR2.getType());
+								// prüfen, ob es sich beim Attr in R1 um eine Konstanten handelt
+								boolean attrOfR2IsConstant = isAttrValueAConstant(attrOfR2, rule2);
+								if(attrOfSameTypeInLhsOfR1 != null){
+									
+									//Fälle:
+//									R1KONST R2KONST
+//									!equals: "differingConstants = true;" -> break early
+//									
+//									prüfen ob bei R1 eine Änderung vorliegt (r1LHS.getValue 1= r1HRS.getValue)
+//										-> "changeAttrIsUsed = true;"
+//										& generell setzen des Konst Wertes oder einer Variablenkombination in S1Graph
+
+									// prüfen, ob es sich beim Attr in R1 um eine Konstanten handelt
+									boolean attrOfSameTypeInLhsOfR1IsConstant = isAttrValueAConstant(attrOfSameTypeInLhsOfR1, rule1);
+									if(attrOfR2IsConstant && attrOfSameTypeInLhsOfR1IsConstant){
+										//prüfen ob die Werte gleich sind.
+										boolean valuesIdentical = attrOfR2.getValue().equals(attrOfSameTypeInLhsOfR1.getValue());
+										if(valuesIdentical){	// Situation: KONST - KONST									
+											//alles gut!
+											// ein entsprechender Wert im S-Graph bzw. overlap muss gesetzt werden!
+//											newNodeInS1Graph.getAttribute(attrOfR2.getType()).setValue(attrOfR2.getValue()); //wrong code
+											henshinFactory.createAttribute(newNodeInS1Graph, attrOfR2.getType(), attrOfR2.getValue());
+											// handelt es sich bei dem R1Attr um einen change?
+											if(!attrOfSameTypeInLhsOfR1.getValue().equals(el1InRhsOfR1.getAttribute(attrOfR2.getType()).getValue())){
+												changeAttrIsUsed = true;
+											}
+										}else { 	// Situation: KONST - KONST
+											// zwei Konstanten mit abweichenden Werten -> Knoten passen nicht zueinander! 
+											// d.h. "differingConstants" = true
+											differingConstants = true;
+										}
+									}else {
+										// mindestens eines der beiden Attribute ist eine variable
+										// -> alles gut 
+										// wenn eines der beiden Attribute eine Konstante ist muss ein entsprechender Wert im S-Graph bzw. overlap gesetzt werden!
+										if(attrOfR2IsConstant) 	// Situation: VAR - KONST
+//											newNodeInS1Graph.getAttribute(attrOfR2.getType()).setValue(attrOfR2.getValue()); //wrong code
+											henshinFactory.createAttribute(newNodeInS1Graph, attrOfR2.getType(), attrOfR2.getValue());
+										if(attrOfSameTypeInLhsOfR1IsConstant) 	// Situation: KONST - VAR
+//											newNodeInS1Graph.getAttribute(attrOfSameTypeInLhsOfR1.getType()).setValue(attrOfSameTypeInLhsOfR1.getValue()); //wrong code
+											henshinFactory.createAttribute(newNodeInS1Graph, attrOfSameTypeInLhsOfR1.getType(), attrOfSameTypeInLhsOfR1.getValue());
+										
+										// handelt es sich bei dem R1Attr um einen change?
+										// wenn die erste Regel das Attr löscht, so handelt es sich auch um einen Attr Change!
+										Attribute attrInRhsOfR1 = el1InRhsOfR1.getAttribute(attrOfSameTypeInLhsOfR1.getType());
+										if(attrInRhsOfR1 == null || !attrOfSameTypeInLhsOfR1.getValue().equals(attrInRhsOfR1.getValue())){
+											changeAttrIsUsed = true;
+										}
+										//TODO: für VAR-VAR muss noch das Attribute im S1-Graph erstellt werden. 
+										if(!attrOfR2IsConstant && !attrOfSameTypeInLhsOfR1IsConstant){
+											String valueForAttr = attrOfSameTypeInLhsOfR1.getValue()+"_"+attrOfSameTypeInLhsOfR1.getValue();
+											henshinFactory.createAttribute(newNodeInS1Graph, attrOfSameTypeInLhsOfR1.getType(), valueForAttr);
+										}
+									}
+									
+								}else {
+									// Attribute des entsprechenden EAttribute Typs war nur in R2 vorhanden!
+									// -> alles gut 
+									//wenn das Attribute in R2 eine Konstante ist muss ein entsprechender Wert im S-Graph bzw. overlap gesetzt werden!
+									if(attrOfR2IsConstant)
+//										newNodeInS1Graph.getAttribute(attrOfR2.getType()).setValue(attrOfR2.getValue()); //wrong code
+										henshinFactory.createAttribute(newNodeInS1Graph, attrOfR2.getType(), attrOfR2.getValue());
+									//TODO: wenn für das EAttribute nur eine VARiable in R2 vorliegt diese auch in den S1-Graph aufnehmen?
+								}
+
+							}
+						}
+
+						if(!differingConstants){
+							//TODO: bis hierher sind alle Attribute von R2 behandelt worden.
+							// Was fehlt ist die Behandlung der Attribute die nur in R1 vorkommen. 
+							// Wenn es sich dabei um eine Konstante handelt, so sollte diese auch im S-Graph bzw. overlap gesetzt werden!
+							for(Attribute attrOfR1Node : ((Node)el1).getAttributes()){
+								Attribute attributeInR2Node = nodeInLhsOfR2.getAttribute(attrOfR1Node.getType());
+								if(attributeInR2Node == null){ // Attribute nur in R1 Knoten vorhanden.
+									if(isAttrValueAConstant(attrOfR1Node, rule1)){
+//										newNodeInS1Graph.getAttribute(attrOfR1Node.getType()).setValue(attrOfR1Node.getValue()); //wrong code
+										henshinFactory.createAttribute(newNodeInS1Graph, attrOfR1Node.getType(), attrOfR1Node.getValue());
+									}
+									//TODO: wenn für das EAttribute nur eine VARiable in R1 vorliegt diese auch in den S1-Graph aufnehmen?
+								}
+							}
+						}
+						
+						if(!differingConstants && changeAttrIsUsed)
+							result.add(S1span);
+					}
+				}				
+		}
+					
+
+		
+		
+		return result;
+	}
+
+	//TODO: diese Methode muss gut getestet werden!
+	/* Was ist schlimmer: 
+	 * 	Wenn eine Konstante nicht als solche erkannt wird? 
+	 * 	Oder wenn eine Variable als Konstante eingeordnet wird? 
+	 * Generell muss es doch ähnliche Prüfungen bzw. Behanldungen auch bereits im Kern bzw. Interpreter von Henshin geben.
+	 * siehe auch "HenshinValidator.validateAttributeCondition_conditionAllParametersAreDeclared" für eine entsprechende statische Prüfung!
+	 */
+	private boolean isAttrValueAConstant(Attribute attr, Rule rule) {
+		/* Vorgehen um AttrValue als Konstante zu identifizieren.
+		 * - Konstante geht nur bei entsprechendem Datentyp
+		 * 	- Bei EString sollte es Anführungszeichen haben und davon abgesehen parsable sein.
+		 *  - bei numerischen Datentypen solte es entsprechend parsable sein.  
+		 * 
+		 */
+		if(isPrimitiveDataType(attr.getType())){
+			if(attributeIsParsable(attr)){
+				return true;
+			}
+		}
+			
+		//TODO: hier kann/sollte noch geprüft werden, ob es auch einen passenden Regelparameter gibt.
+//		EList<Parameter> parameters = rule.getParameters();
+//		for(Parameter parameter : parameters){
+//			parameter.get
+//		}
+		return false;
+	}
+
+	private List<Edge> identifyAtomicDeletionEdges(Rule rule1) {
+		List<Edge> atomicDeletionEdges = new LinkedList<Edge>();
+		Action deleteAction2 = new Action(Action.Type.DELETE);
+		for (Edge deletionEdge : rule1.getActionEdges(deleteAction2)) {
 			Action sourceNodeAction = deletionEdge.getSource().getAction();
 			Action targetNodeAction = deletionEdge.getTarget().getAction();
 			if (sourceNodeAction.getType().equals(Action.Type.PRESERVE)
@@ -141,122 +523,17 @@ public class AtomicCoreCPA {
 				// URI deleteEdge_uri = EcoreUtil.getURI(deletionEdge.getType());
 				// System.out.println("HALT");
 				if (!isHoweverAPreserveEdge)
-					atomicDeletionElements.add(deletionEdge);
+					atomicDeletionEdges.add(deletionEdge);
 			}
 		}
-		// ATTRIBUTE deletion (also attribute change - change-use-conflicts)
-		Action preserveAction = new Action(Action.Type.PRESERVE);
-		for(Node lhsNode : rule1.getActionNodes(preserveAction)){
-//			System.out.println("lhsNode.getGraph().toString() "+lhsNode.getGraph().toString());
-			// wenn eines der Attribute auf der LHS und RHS voneinader abweicht, so handelt es sich um einen change
-			Node rhsNode = rule1.getMappings().getImage(lhsNode, rule1.getRhs());
-			boolean attributeChanged = false;
-			for(Attribute lhsAttr : lhsNode.getAttributes()){
-				Attribute rhsAttr = rhsNode.getAttribute(lhsAttr.getType());
-				if(rhsAttr == null || !lhsAttr.getValue().equals(rhsAttr.getValue())){
-					attributeChanged = true;
-				}
-			}
-			if(attributeChanged)
-				atomicDeletionElements.add(lhsNode);
-			
-//			EList<Attribute> actionAttributes = lhsNode.getActionAttributes(deleteAction);
-//			System.err.println("actionAttributes.size() "+actionAttributes.size());
-		}
-		
-		
-		for (ModelElement el1 : atomicDeletionElements) {
-			List<ModelElement> atomicUsageElements = new LinkedList<ModelElement>();
-			if (el1 instanceof Node) {
-				//TODO: nach sub- und super-typ überprüfen!
-				//TODO: überprüfen, ob es Attribute mit abweichenden konstanten Werten gibt!
-				for(Node nodeInLhsOfR2 : rule2.getLhs().getNodes()){
-					boolean r1NodeIsSuperTypeOfR2Node = nodeInLhsOfR2.getType().getESuperTypes().contains(((Node) el1).getType());
-					boolean r2NodeIsSuperTypeOfR1Node = ((Node) el1).getType().getEAllSuperTypes().contains(nodeInLhsOfR2.getType());
-					boolean identicalType = nodeInLhsOfR2.getType().equals((((Node) el1).getType()));
-					if(r1NodeIsSuperTypeOfR2Node || r2NodeIsSuperTypeOfR1Node || identicalType){
-						// Für jedes Attribut der beiden Knoten muss geprüft werden, ob es eine Konstante ist String und Zahlen.
-						// Wenn es eine Konstante ist, dann muss überprüft werden, ob diese übereinstimmen.
-						// Wenn es eine Variable ist, so ist der potentielle Konflikt nur vorhanden wenn die Variable für das entsprechende Attribut beider Knoten und somit den Span identisch sind.
-						boolean differingAttributeConstantsLhsR1 = false;
-						boolean differingAttributeConstantsRhsR1 = false;
-						Node el1InRhsOfR1 = rule1.getMappings().getImage((Node)el1, rule1.getRhs());
-						boolean nodeInR1IsDeleted = (el1InRhsOfR1 == null);
-							for(Attribute attrOfR2 : nodeInLhsOfR2.getAttributes()){
-								if(isPrimitiveDataType(attrOfR2.getType())){
-									// TODO: nur bei festen Werten (String, Char, Int, Double, Long) überprüfen, ob diese für den zugeordneten Knoten ebensfalls fest und abweichend ist.   
-									if(attributeIsParsable(attrOfR2)){
-										if(nodeInR1IsDeleted){											
-											// ÜBERPRÜFUNG des Knoten el1 hinsichtlich delete-use-conflicts
-											//TODO: prüfen ob der zugehörige Knoten von R1 auch ein passendes parsable eAttribute hat.
-											if(nodeHasAttributeWithDifferingConstantValue((Node) el1, attrOfR2.getType(), attrOfR2.getValue())/*Knoten aus LHS von R1 hat passendes Attribut definiert mit abweichendem parsable Wert*/){
-												differingAttributeConstantsLhsR1 = true;
-											}
-										}
-										// ÜBERPRÜFUNG des Knoten el1 hinsichtlich change-use-conflicts
-										if(nodeHasAttributeWithDifferingConstantValue(el1InRhsOfR1, attrOfR2.getType(), attrOfR2.getValue())/*Knoten aus RHS von R1 hat passendes Attribut definiert mit abweichendem parsable Wert*/){
-											differingAttributeConstantsRhsR1 = true;
-										}
-									}
-								}
-							}
-						if(!differingAttributeConstantsLhsR1 && nodeInR1IsDeleted) 
-							//für beide Knoten ist für keines der Attribute ein abweichender Wert gesetzt.
-							// -> delete-use-conflict möglich
-							atomicUsageElements.add(nodeInLhsOfR2);
-						if(differingAttributeConstantsRhsR1) 
-							//für den der RHS der 1.Regel ist für ein Attribute ein abweichender Wert gesetzt.
-							// -> change-use-conflict 
-							atomicUsageElements.add(nodeInLhsOfR2);
-					}
-				}				
-				
-				// EList<Node> nodes = rule2.getLhs().getNodes(((Node) el1).getType());
-			}
-			if (el1 instanceof Edge) {
-				atomicUsageElements.addAll(rule2.getLhs().getEdges(((Edge) el1).getType()));
-			}
-			for (ModelElement el2 : atomicUsageElements) {
-
-				Graph S1 = henshinFactory.createGraph();
-
-				List<Mapping> rule1Mappings = new LinkedList<Mapping>();
-				List<Mapping> rule2Mappings = new LinkedList<Mapping>();
-
-				if (el2 instanceof Node) {
-					Node newNodeInS1Graph = addNodeToGraph((Node)el1, (Node)el2, S1, rule1Mappings, rule2Mappings);
-					Span S1span = new Span(rule1Mappings, S1, rule2Mappings);
-					result.add(S1span);
-					//TODO: newNodeInS1Graph müssen noch die jeweiligen Attribute hinzugefügt werden!
-
-					// EClass type = ((Node) el2).getType();
-					// EPackage singleEPackageOfDomainModel = type.getEPackage();
-					// EFactory eFactoryInstance = singleEPackageOfDomainModel.getEFactoryInstance();
-					//
-					// EObject create = eFactoryInstance.create(type);
-					// el2.eResolveProxy
-				}
-				if (el2 instanceof Edge) {
-
-					Node commonSourceNode = addNodeToGraph(((Edge) el1).getSource(), ((Edge) el2).getSource(), S1,
-							rule1Mappings, rule2Mappings);
-					Node commonTargetNode = addNodeToGraph(((Edge) el1).getTarget(), ((Edge) el2).getTarget(), S1,
-							rule1Mappings, rule2Mappings);
-					Span S1span = new Span(rule1Mappings, S1, rule2Mappings);
-					result.add(S1span);
-
-					S1.getEdges()
-							.add(henshinFactory.createEdge(commonSourceNode, commonTargetNode, ((Edge) el2).getType()));
-				}
-			}
-		}
-		return result;
+		return atomicDeletionEdges;
 	}
 
 	private boolean nodeHasAttributeWithDifferingConstantValue(Node el1, EAttribute typeOfComparedAttribute, String valueOfComparedAttribute) {
 		Attribute attribute = el1.getAttribute(typeOfComparedAttribute);
 		if(attribute != null){
 			if(attributeIsParsable(attribute)){
+				//TODO: muss hier gegenebenfalls eien Anpassung vorgenommen werden für variablen (diese sind nciht parsable, können aber zum Konflikt führen!)
 				if(!attribute.getValue().equals(valueOfComparedAttribute))
 					return true;
 			}
@@ -270,7 +547,21 @@ public class AtomicCoreCPA {
 		EDataType eAttributeType = type.getEAttributeType();
 //		eAttributeType.getName()
 		if(attrOfR2.getType().toString() == "EString"){
-			//check for quotes ("") 
+			//TODO:
+			// 1. check for quotes ("") 
+			// 2. try to parse the value! 
+			String value = attrOfR2.getValue();
+			if(value.startsWith("\"") && value.endsWith("\"")){
+				String[] split = value.split("\"");
+				if(split.length == 2)
+					return true;
+			}
+			return false;
+		}
+		if(attrOfR2.getType().toString() == "EChar"){
+			//TODO:
+			// 1. maybe check for quotes ("") 
+			// 2. try to parse the value! 
 		}
 		if(eAttributeType.getName() == "EInt"){
 			try {
@@ -326,14 +617,16 @@ public class AtomicCoreCPA {
 		return false;
 	}
 
-	private Node addNodeToGraph(Node nodeInRule1, Node nodeInRule2, Graph S1, List<Mapping> rule1Mappings,
-			List<Mapping> rule2Mappings) {
+	private Node addNodeToGraph(Node nodeInRule1, Node nodeInRule2, Graph S1, Set<Mapping> rule1Mappings,
+			Set<Mapping> rule2Mappings) {
 		// to support inheritance the subtype of both nodes must be considered 
 		EClass subNodeType = identifySubNodeType(nodeInRule1, nodeInRule2); //TODO: might return null - Handle this!
 		Node commonNode = henshinFactory.createNode(S1, subNodeType,
 				nodeInRule1.getName() + "_" + nodeInRule2.getName());
 		
 		// TODO: beim Erstellen des Knoten auch ggf. die notwendigen Attribute mit erstellen!
+			// ?? Alle aus beiden Knoten, oder nur die übereinstimmenden?
+			// ACHTUNG! hier müssen die vier Fälle aus KONST und VAR in Einklang gebracht werden! 
 
 		rule1Mappings.add(henshinFactory.createMapping(commonNode, nodeInRule1));
 		rule2Mappings.add(henshinFactory.createMapping(commonNode, nodeInRule2));
@@ -356,17 +649,17 @@ public class AtomicCoreCPA {
 		return null;
 	}
 
-	public void computeMinimalConflictReasons(Rule rule1, Rule rule2, Span s1, Set<Span> reasons) {
+	public void computeMinimalConflictReasons(Rule rule1, Rule rule2, Span s1, Set<MinimalConflictReason> minimalConflictReasons) {
 		checkNull(rule1, "rule1");
 		checkNull(rule2, "rule2");
 		if (isMinReason(rule1, rule2, s1)) {
-			reasons.add(s1);
+			minimalConflictReasons.add(new MinimalConflictReason(s1));
 			return;
 		}
 		// is this part of the backtracking?
-		Set<Span> extendedSpans = findExtensions(rule1, rule2, s1, reasons);
+		Set<Span> extendedSpans = findExtensions(rule1, rule2, s1);
 		for (Span extendedSpan : extendedSpans) {
-			computeMinimalConflictReasons(rule1, rule2, extendedSpan, reasons);
+			computeMinimalConflictReasons(rule1, rule2, extendedSpan, minimalConflictReasons);
 		}
 	}
 
@@ -402,7 +695,7 @@ public class AtomicCoreCPA {
 		return pushoutResult;
 	}
 
-	private Set<Span> findExtensions(Rule rule1, Rule rule2, Span s1, Set<Span> reasons) {
+	private Set<Span> findExtensions(Rule rule1, Rule rule2, Span s1) {
 		PushoutResult pushoutResult = constructPushout(rule1, rule2, s1);
 		List<Edge> danglingEdges = findDanglingEdgesByLHSOfRule1(rule1, pushoutResult.getMappingsOfRule1());
 		System.out.println(s1.getGraph().getNodes() + " " + s1.getGraph().getEdges());
@@ -433,7 +726,7 @@ public class AtomicCoreCPA {
 	// TODO: höchstwahrscheinlich werden noch als zusätzliche Übergabeparameter die Mappings m_1 und m_2 benötigt
 	// --> Algo anpassen! (ansonsten kann der zugehörige knoten zur dangling edge nicht eindeutig in S1 bestimmt
 	// werden.)
-	// TODO: die zweite Optimierung haeb ich noch nciht verstanden!
+	// TODO: die zweite Optimierung haeb ich noch nicht verstanden!
 	// TODO: mwenn (mit Daniel?) geklärt ist, dass die matches notwendig sind, dann könnte man überlegen die beiden
 	// Listen von mapping edges
 	// und zusätzlich auch noch den Span s1 durch das "pushoutResult" zu ersetzen, da dieses alle drei kennen
@@ -653,7 +946,7 @@ public class AtomicCoreCPA {
 	
 	// Spezifikation der Methode: Gibt die Menge der Kanten aus der Regel zurück, die beim Anwenden auf den overlapGraph
 	// zu einer dangling edge führen würden!
-	public List<Edge> findDanglingEdgesByLHSOfRule2(List<Mapping> mappingInRule1, Rule rule, List<Mapping> mappingInRule2) {
+	public List<Edge> findDanglingEdgesByLHSOfRule2(Set<Mapping> mappingInRule1, Rule rule, Set<Mapping> mappingInRule2) {
 		
 		HashMap<Node, Node> l1ToOverlap = new HashMap<Node, Node>();
 		HashMap<Node, Node> overlapToL1 = new HashMap<Node, Node>();
@@ -755,7 +1048,7 @@ public class AtomicCoreCPA {
 			}
 		}
 
-		System.out.println(mappingInRule2.get(0).getImage().getGraph().getNodes().size());
+		System.out.println(mappingInRule2.iterator().next().getImage().getGraph().getNodes().size());
 		System.out.println("found "+danglingEdges.size()+ " dangling edges: "+danglingEdges);
 		return danglingEdges;
 	}
@@ -765,6 +1058,14 @@ public class AtomicCoreCPA {
 	// Je nach Ergebnis löschen oder in eigenständiges class-file auslagern.
 	public class ConflictAtom {
 		Span span;
+		boolean deleteEdgeConflictAtom = false;
+		
+		/**
+		 * @return the deleteEdgeConflictAtom
+		 */
+		public boolean isDeleteEdgeConflictAtom() {
+			return deleteEdgeConflictAtom;
+		}
 
 		/**
 		 * @return the span
@@ -773,13 +1074,20 @@ public class AtomicCoreCPA {
 			return span;
 		}
 
-		Set<Span> reasons;
+		Set<MinimalConflictReason> minimalConflictReasons;
 
 		// in Algo Zeile 6 wird ein Atom mit den Parametern candidate und reasons initilisiert.
 		// dennoch ist die Datenstruktur noch nicht klar!
-		public ConflictAtom(Span candidate, Set<Span> reasons) {
+		public ConflictAtom(Span candidate, Set<MinimalConflictReason> minimalConflictReasons) {
 			this.span = candidate;
-			this.reasons = reasons;
+			this.minimalConflictReasons = minimalConflictReasons;
+			for(MinimalConflictReason mcr : minimalConflictReasons){
+				mcr.addContainedConflictAtom(this);
+			}
+			// required for boundary nodes
+			if(candidate.getGraph().getNodes().size() == 2)
+				deleteEdgeConflictAtom = true;
+				// S1 graph of a conflict atom should contain two nodes.  Conflict Atoms with one node in the S1-span are based on node deletion or attribute change.
 		}
 		
 		// bisher werden die "reason's" nicht berücksichtigt, 
@@ -796,17 +1104,23 @@ public class AtomicCoreCPA {
 		/**
 		 * @return the reasons
 		 */
-		public Set<Span> getReasons() {
-			return reasons;
+		public Set<MinimalConflictReason> getMinimalConflictReasons() {
+			return minimalConflictReasons;
 		}
 
+	}
+	
+	private enum ConflictAtomKind{
+		DELETE_NODE,
+		DELETE_EDGE,
+		CHANGE_ATTR
 	}
 
 	public Span newSpan(Mapping nodeInRule1Mapping, Graph s1, Mapping nodeInRule2Mapping) {
 		return new Span(nodeInRule1Mapping, s1, nodeInRule2Mapping);
 	}
 
-	public Span newSpan(List<Mapping> rule1Mappings, Graph s1, List<Mapping> rule2Mappings) {
+	public Span newSpan(Set<Mapping> rule1Mappings, Graph s1, Set<Mapping> rule2Mappings) {
 		return new Span(rule1Mappings, s1, rule2Mappings);
 	}
 
@@ -818,11 +1132,28 @@ public class AtomicCoreCPA {
 	// d.h. drei Graphen verbunden über eine Inklusion und einen Match
 
 	public class Span {
+		
+		Rule rule1;
+		Rule rule2;
 
-		List<Mapping> mappingsInRule1;
-		List<Mapping> mappingsInRule2;
+		Set<Mapping> mappingsInRule1;
+		Set<Mapping> mappingsInRule2;
 
 		Graph graph;
+
+		/**
+		 * @return the rule1
+		 */
+		public Rule getRule1() {
+			return rule1;
+		}
+
+		/**
+		 * @return the rule2
+		 */
+		public Rule getRule2() {
+			return rule2;
+		}
 
 		private Copier copierForSpanAndMappings;
 
@@ -948,7 +1279,7 @@ public class AtomicCoreCPA {
 						return false; // TODO: isnt that a bug instead of an unequal Span?
 					// the nodes of the span should all have a mapping into both rules.
 					// somehow the nodes in the graph of the span or the nodes in the mapping must bewrong.
-					// it shouldnt be possible to change the graph and the mappings of aspan and everytime they are
+					// it shouldnt be possible to change the graph and the mappings of a span and everytime they are
 					// created they should be checked to be consistent!
 					Node associatedNodeInRule1 = mappingOfNodeInRule1.getImage();
 					// get mapping in otherGraph
@@ -990,14 +1321,14 @@ public class AtomicCoreCPA {
 		/**
 		 * @return the mappingsInRule1
 		 */
-		public List<Mapping> getMappingsInRule1() {
+		public Set<Mapping> getMappingsInRule1() {
 			return mappingsInRule1;
 		}
 
 		/**
 		 * @return the mappingsInRule2
 		 */
-		public List<Mapping> getMappingsInRule2() {
+		public Set<Mapping> getMappingsInRule2() {
 			return mappingsInRule2;
 		}
 
@@ -1007,9 +1338,9 @@ public class AtomicCoreCPA {
 			//TODO: introduce a check that rule 1 != rule2
 			//TODO: afterwards "pushout" tests have to be adapted!
 			this.graph = s1;
-			mappingsInRule1 = new LinkedList<Mapping>();
+			mappingsInRule1 = new HashSet<Mapping>();
 			mappingsInRule1.add(nodeInRule1Mapping);
-			mappingsInRule2 = new LinkedList<Mapping>();
+			mappingsInRule2 = new HashSet<Mapping>();
 			mappingsInRule2.add(nodeInRule2Mapping);
 		}
 
@@ -1029,10 +1360,26 @@ public class AtomicCoreCPA {
 			return null;
 		}
 
-		public Span(List<Mapping> rule1Mappings, Graph s1, List<Mapping> rule2Mappings) {
-			this.mappingsInRule1 = rule1Mappings;
+		/**
+		 * returns the kernel rule of the first mapping or <code>null</code> if the set <code>mappings</code> is empty.
+		 * @param mappings
+		 * @return a <code>Rule</code> or null. 
+		 */
+		private Rule getRuleOfMappings(Set<Mapping> mappings) {
+			try {
+				return mappings.iterator().next().getImage().getGraph().getRule();
+			} catch (Exception e) {
+				// nothing to do here
+			}
+			return null;
+		}
+
+		public Span(Set<Mapping> rule1Mappings, Graph s1, Set<Mapping> rule2Mappings) {
+			this.mappingsInRule1 = rule1Mappings; //TODO: wie verhält es sich mit einem leeren Graph, bzw. leeren mappngs?
 			this.mappingsInRule2 = rule2Mappings;
 			this.graph = s1;
+			this.rule1 = getRuleOfMappings(rule1Mappings); // might return null. Needs to be improved. if rules are not set NPE might occure. 
+			this.rule2 = getRuleOfMappings(rule2Mappings);
 		}
 
 		public Span(Span s1) {
@@ -1045,7 +1392,7 @@ public class AtomicCoreCPA {
 			this.graph = copiedGraph;
 
 			// TODO: extract to method
-			List<Mapping> mappingsInRule1 = new LinkedList<Mapping>();
+			Set<Mapping> mappingsInRule1 = new HashSet<Mapping>();
 			for (Mapping mapping : s1.getMappingsInRule1()) {
 				Mapping copiedMapping = (Mapping) copierForSpanAndMappings.copy(mapping);
 				copierForSpanAndMappings.copyReferences();
@@ -1053,13 +1400,16 @@ public class AtomicCoreCPA {
 			}
 			this.mappingsInRule1 = mappingsInRule1;
 
-			List<Mapping> mappingsInRule2 = new LinkedList<Mapping>();
+			Set<Mapping> mappingsInRule2 = new HashSet<Mapping>();
 			for (Mapping mapping : s1.getMappingsInRule2()) {
 				Mapping copiedMapping = (Mapping) copierForSpanAndMappings.copy(mapping);
 				copierForSpanAndMappings.copyReferences();
 				mappingsInRule2.add(copiedMapping);
 			}
 			this.mappingsInRule2 = mappingsInRule2;
+
+			this.rule1 = getRuleOfMappings(mappingsInRule1); 
+			this.rule2 = getRuleOfMappings(mappingsInRule2);
 		}
 		
 
@@ -1134,9 +1484,23 @@ public class AtomicCoreCPA {
 	}
 	
 	public class MinimalConflictReason extends InitialReason {
+		
+		private Set<ConflictAtom> containedConflictAtom;
 
-		public MinimalConflictReason(Span minimalConflictReason) {
-			super(minimalConflictReason);
+		public MinimalConflictReason(Span minimalConflictReasonSpan) {
+			super(minimalConflictReasonSpan);
+			containedConflictAtom = new HashSet<ConflictAtom>();
+			if(minimalConflictReasonSpan instanceof MinimalConflictReason){
+				containedConflictAtom.addAll(((MinimalConflictReason) minimalConflictReasonSpan).getContainedConflictAtoms());
+			}
+		}
+
+		public void addContainedConflictAtom(ConflictAtom conflictAtom) {
+			containedConflictAtom.add(conflictAtom);			
+		}
+		
+		public Set<ConflictAtom> getContainedConflictAtoms() {
+			return containedConflictAtom;			
 		}
 
 		public Set<ModelElement> getDeletionElementsInRule1() {
@@ -1219,15 +1583,15 @@ public class AtomicCoreCPA {
 			
 		}
 		
-		public InitialReason(List<Mapping> mappingsOfNewSpanInRule1, Graph graph1Copy,
-				List<Mapping> mappingsOfNewSpanInRule2, Set<MinimalConflictReason> originMCRs) {
+		public InitialReason(Set<Mapping> mappingsOfNewSpanInRule1, Graph graph1Copy,
+				Set<Mapping> mappingsOfNewSpanInRule2, Set<MinimalConflictReason> originMCRs) {
 			super(mappingsOfNewSpanInRule1, graph1Copy, mappingsOfNewSpanInRule2);
 			this.deletionElementsInRule1 = getDeletionElementsOfSpan(this);
 			this.originMCRs = originMCRs;
 		}
 		
-		private Set<ModelElement> getDeletionElementsOfSpan(List<Mapping> mappingsOfSpanInRule1, Graph graph,
-				List<Mapping> mappingsOfSpanInRule2) {
+		private Set<ModelElement> getDeletionElementsOfSpan(Set<Mapping> mappingsOfSpanInRule1, Graph graph,
+				Set<Mapping> mappingsOfSpanInRule2) {
 			Set<ModelElement> deletionElements = new HashSet<ModelElement>();
 			// alle Elemente im Graph des Span müssen geprüft werden, ob es sich dabei um löschende Elemente der ersten Regel handelt!
 			// Kanten im Graph sind (für delete-use) immer löschende Elemente (Das geht aus der Definition der ConflictAtoms und MCR hervor)
@@ -1253,7 +1617,7 @@ public class AtomicCoreCPA {
 		}
 		
 		// TODO use "getMappingWithImage(...)" method
-		private Mapping getMappingIntoRule(List<Mapping> mappingsFromSpanInRule, Node originNode) {
+		private Mapping getMappingIntoRule(Set<Mapping> mappingsFromSpanInRule, Node originNode) {
 			for (Mapping mapping : mappingsFromSpanInRule) {
 				if (mapping.getOrigin() == originNode)
 					return mapping;
@@ -1269,6 +1633,355 @@ public class AtomicCoreCPA {
 			return AtomicCoreCPA.this;
 		}
 
+		public Set<ConflictAtom> getCoveredEdgeConflictAtoms() {
+			Set<ConflictAtom> edgeConflictAtoms = new HashSet<ConflictAtom>();
+			for(MinimalConflictReason mcr : originMCRs){
+				 Set<ConflictAtom> containedConflictAtoms = mcr.getContainedConflictAtoms();
+				 for(ConflictAtom conflictAtom : containedConflictAtoms){
+					 if(conflictAtom.isDeleteEdgeConflictAtom())
+						 edgeConflictAtoms.add(conflictAtom);
+				 }
+			}
+			return edgeConflictAtoms;
+		}
+
+		public Set<ConflictReason> getAllDerivedConflictReasons(Set<ConflictAtom> byInitialReasonUncoveredConflictAtoms){
+			Set<ConflictReason> derivedConflictReasons = new HashSet<ConflictReason>();
+			/* über jedes uncoveredCA iterieren
+			 * 	jeweils für beide Knoten abarbeiten
+			 * 		für jeden Knoten jeweils alle 'use'-Knoten der zweiten Regel finden! (auch Attr. berücksichtigen!)
+			 * 			An jeder Position rekursiv versuchen auch weitere Überlappungskombinationen zu bilden!
+			 * 			iteriere über Kombinationen für Knoten 1 - "Nullposition" ist ebenfalls gültig und behandelt den Fall, dass Knoten 2 nciht mit einbezogen ist
+			 * 				iteriere über Positionen für Knoten 2 - "Nullposition" ist ebenfalls gültig und behandelt den Fall,d ass Knoten 1 nciht mit einbezogen ist
+			 * 					bei jeder Kombination noch versuchen rekursiv ein weiteres uncoveredCA miteinzubeziehen!
+			 * 
+			 * 		Kombinationen beider Knoten sind erlaubt, solange es keien Kante des zu löschenden Typs zwischen diesen gibt!
+			 * 
+			 */
+			
+			//initiales CR aus dem IR selbst
+			if(!(this instanceof ConflictReason)){//this.toShortString()
+				ConflictReason conflictReasonWithoutBA = new ConflictReason(this);
+				derivedConflictReasons.add(conflictReasonWithoutBA);
+			}
+			
+			
+			//über jedes uncoveredCA iterieren
+			for(ConflictAtom uncoveredCA : byInitialReasonUncoveredConflictAtoms){
+				Set<Node> allreadyUsedNodesInR1 = getAlreadyUsedNodesOfR1();
+				Set<Node> allreadyUsedNodesInR2 = getAlreadyUsedNodesOfR2();
+				//TODO: bisher wird vererbung nicht berücksichtigt! Können boundary atoms auch bei Vererbung entstehen? Muss geprüft und ggf. angepasst werden!
+				EList<Node> nodesOfUncoveredCA = uncoveredCA.getSpan().getGraph().getNodes();
+				Node node1 = nodesOfUncoveredCA.get(0);
+				Node node2 = nodesOfUncoveredCA.get(1);
+				Rule rule2 = this.getRule2();
+					
+			// 	jeweils für beide Knoten abarbeiten
+			// 		für jeden Knoten jeweils alle 'use'-Knoten der zweiten Regel finden! (auch Attr. berücksichtigen!)
+			// 			An jeder Position rekursiv versuchen auch weitere Überlappungskombinationen zu bilden!
+			// 			iteriere über Kombinationen für Knoten 1 - "Nullposition" ist ebenfalls gültig und behandelt den Fall, dass Knoten 2 nciht mit einbezogen ist
+				List<Node> potentialUseNodesForN1InLhsOfR2 = new LinkedList<Node>(rule2.getLhs().getNodes(node1.getType()));
+				potentialUseNodesForN1InLhsOfR2.removeAll(allreadyUsedNodesInR2);
+				// Knoten aus R1 dürfen nicht mehrfach in ein CR involviert sein!
+				boolean node1AlreadyUsedInR1 = allreadyUsedNodesInR1.contains(uncoveredCA.getSpan().getMappingIntoRule1(node1).getImage());
+				boolean node1AlreadyUsedInR2 = allreadyUsedNodesInR2.contains(uncoveredCA.getSpan().getMappingIntoRule2(node1).getImage());
+				if( ! (node1AlreadyUsedInR1 || node1AlreadyUsedInR2)){
+					for(Node potentialUseNodeForN1InLhsOfR2 : potentialUseNodesForN1InLhsOfR2){
+						// hier zuerst den Fall für node1 alleine (ohne node2) behandeln!
+						// bei jeder Kombination noch versuchen rekursiv ein weiteres uncoveredCA miteinzubeziehen!
+						// TODO: extract three times equal code to common method!
+						//TODO: completion test here!
+						boolean potentialUseNodeCompletesContainedBA_OrSecondUncoveredCANodeIsAlreadyPresent = potentialUseNodeCompletesContainedBAOrSecondUncoveredCANodeIsAlreadyPresent(
+								uncoveredCA, node2, potentialUseNodeForN1InLhsOfR2);
+						
+						if(!potentialUseNodeCompletesContainedBA_OrSecondUncoveredCANodeIsAlreadyPresent){
+							ConflictReason conflictReasonWithOneNewBA = new ConflictReason(this, node1, potentialUseNodeForN1InLhsOfR2, uncoveredCA);
+							derivedConflictReasons.add(conflictReasonWithOneNewBA);
+							Set<ConflictAtom> remainingUncoveredConflictAtomsOneBA = new HashSet<AtomicCoreCPA.ConflictAtom>(byInitialReasonUncoveredConflictAtoms);
+							remainingUncoveredConflictAtomsOneBA.remove(uncoveredCA);
+							Set<ConflictReason> recursiveDerivedConflictReasonsOneBA = conflictReasonWithOneNewBA.getAllDerivedConflictReasons(remainingUncoveredConflictAtomsOneBA);
+							derivedConflictReasons.addAll(recursiveDerivedConflictReasonsOneBA);
+							
+							// iteriere über Positionen für Knoten 2 - "Nullposition" ist ebenfalls gültig und behandelt den Fall,d ass Knoten 1 nciht mit einbezogen ist
+							List<Node> potentialUseNodesForN2InLhsOfR2 = new LinkedList<Node>(rule2.getLhs().getNodes(node2.getType()));
+							potentialUseNodesForN2InLhsOfR2.removeAll(allreadyUsedNodesInR2);
+							potentialUseNodesForN2InLhsOfR2.remove(potentialUseNodeForN1InLhsOfR2);
+
+							Set<Node> allreadyUsedNodesInR1OfExtendedCR = conflictReasonWithOneNewBA.getAlreadyUsedNodesOfR1();
+							Set<Node> allreadyUsedNodesInR2OfExtendedCR  = conflictReasonWithOneNewBA.getAlreadyUsedNodesOfR2();
+							for(Node potentialUseNodeForN2InLhsOfR2 : potentialUseNodesForN2InLhsOfR2){
+								boolean node2AlreadyUsedInR1 = allreadyUsedNodesInR1OfExtendedCR.contains(uncoveredCA.getSpan().getMappingIntoRule1(node2).getImage());
+								boolean node2AlreadyUsedInR2 = allreadyUsedNodesInR2OfExtendedCR.contains(potentialUseNodeForN2InLhsOfR2);
+								if( ! (node2AlreadyUsedInR1 || node2AlreadyUsedInR2)){
+									// 		Kombinationen beider Knoten sind erlaubt, solange es keine Kante des zu löschenden Typs zwischen diesen gibt!
+									boolean node1MatchedOnCAOrigin = uncoveredCA.getSpan().getMappingIntoRule2(node1).getImage() == potentialUseNodeForN1InLhsOfR2;
+									boolean node2MatchedOnCAOrigin = uncoveredCA.getSpan().getMappingIntoRule2(node2).getImage() == potentialUseNodeForN2InLhsOfR2;
+									//check that its not exactly the pattern on which the conflict atom is based on
+									// das heißt, dass node1 und node2 genau so in Regel zwei abgebildet werden wie im CA
+									if(!(node1MatchedOnCAOrigin && node2MatchedOnCAOrigin)){ //blocking should happen once per uncoveredCA
+										// TODO: extract three times equal code to common method!
+										//TODO: completion test here!
+										//								boolean potentialUseNodeCompletesContainedBoundaryAtom = false;
+										boolean potentialUseNodeCompletesContainedBA_OrSecondUncoveredCANodeIsAlreadyPresent_N2 = potentialUseNodeCompletesContainedBAOrSecondUncoveredCANodeIsAlreadyPresent(
+												uncoveredCA, node1, potentialUseNodeForN2InLhsOfR2);
+										if(!potentialUseNodeCompletesContainedBA_OrSecondUncoveredCANodeIsAlreadyPresent_N2){
+											ConflictReason conflictReasonWithTwoNewBA = new ConflictReason(conflictReasonWithOneNewBA, node2, potentialUseNodeForN2InLhsOfR2, uncoveredCA);
+											derivedConflictReasons.add(conflictReasonWithTwoNewBA);
+											Set<ConflictAtom> remainingUncoveredConflictAtomsTwoBA = new HashSet<AtomicCoreCPA.ConflictAtom>(byInitialReasonUncoveredConflictAtoms);
+											remainingUncoveredConflictAtomsTwoBA.remove(uncoveredCA);
+											// 					bei jeder Kombination noch versuchen rekursiv ein weiteres uncoveredCA miteinzubeziehen!
+											Set<ConflictReason> recursiveDerivedConflictReasonsTwoBA = conflictReasonWithTwoNewBA.getAllDerivedConflictReasons(remainingUncoveredConflictAtomsTwoBA);
+											derivedConflictReasons.addAll(recursiveDerivedConflictReasonsTwoBA);
+										}
+									}
+								}
+							}
+						}
+	
+					}
+				}
+				List<Node> potentialUseNodesForN2AloneInLhsOfR2 = new LinkedList<Node>(rule2.getLhs().getNodes(node2.getType()));
+				potentialUseNodesForN1InLhsOfR2.removeAll(allreadyUsedNodesInR2);
+				// Knoten aus R2 dürfen nicht mehrfach in ein CR involviert sein!
+				boolean node2AlreadyUsedInR1 = allreadyUsedNodesInR1.contains(uncoveredCA.getSpan().getMappingIntoRule1(node2).getImage());
+				boolean node2AlreadyUsedInR2 = allreadyUsedNodesInR2.contains(uncoveredCA.getSpan().getMappingIntoRule2(node2).getImage());
+				if( ! (node2AlreadyUsedInR1 || node2AlreadyUsedInR2)){
+					for(Node potentialUseNodeForN2InLhsOfR2 : potentialUseNodesForN2AloneInLhsOfR2){
+						// 					bei jeder Kombination noch versuchen rekursiv ein weiteres uncoveredCA miteinzubeziehen!
+						// TODO: extract three times equal code to common method!
+						//TODO: completion test here!
+//					boolean potentialUseNodeCompletesContainedBoundaryAtom = false;
+						boolean potentialUseNodeCompletesContainedBA_OrSecondUncoveredCANodeIsAlreadyPresent = potentialUseNodeCompletesContainedBAOrSecondUncoveredCANodeIsAlreadyPresent(
+								uncoveredCA, node2, potentialUseNodeForN2InLhsOfR2);
+						if(!potentialUseNodeCompletesContainedBA_OrSecondUncoveredCANodeIsAlreadyPresent){
+							ConflictReason conflictReasonWithOneNewBA = new ConflictReason(this, node2, potentialUseNodeForN2InLhsOfR2, uncoveredCA);
+							derivedConflictReasons.add(conflictReasonWithOneNewBA);
+							Set<ConflictAtom> remainingUncoveredConflictAtomsOneBA = new HashSet<AtomicCoreCPA.ConflictAtom>(byInitialReasonUncoveredConflictAtoms);
+							remainingUncoveredConflictAtomsOneBA.remove(uncoveredCA);
+							Set<ConflictReason> recursiveDerivedConflictReasonsOneBA = conflictReasonWithOneNewBA.getAllDerivedConflictReasons(remainingUncoveredConflictAtomsOneBA);
+							derivedConflictReasons.addAll(recursiveDerivedConflictReasonsOneBA);
+						}
+					}
+				}
+			}
+			
+			return derivedConflictReasons;
+		}
+
+		protected Set<Node> getAlreadyUsedNodesOfR1() {
+			Set<Node> usedNodesOfR1 = new HashSet<Node>();
+			if(graph.getNodes().size() != mappingsInRule1.size()){
+				System.err.println("Error!");
+			}
+			for(Mapping mappingInRule1 : mappingsInRule1){
+				usedNodesOfR1.add(mappingInRule1.getImage());
+			}
+			return usedNodesOfR1;
+		}
+
+		protected Set<Node> getAlreadyUsedNodesOfR2() {
+			Set<Node> usedNodesOfR2 = new HashSet<Node>();
+			if(graph.getNodes().size() != mappingsInRule2.size()){
+				System.err.println("Error!");
+			}
+			for(Mapping mappingInRule2 : mappingsInRule2){
+				usedNodesOfR2.add(mappingInRule2.getImage());
+			}
+			return usedNodesOfR2;
+		}
+
+		private boolean potentialUseNodeCompletesContainedBAOrSecondUncoveredCANodeIsAlreadyPresent(
+				ConflictAtom uncoveredCA, Node shouldntBeUsedYetNode, Node potentiallyUseNodeInLhsOfR2) {
+//			Rule rule2 = uncoveredCA.getSpan().getRule2();
+			boolean potentialUseNodeCompletesContainedBA = false;
+			boolean secondUncoveredCANodeIsAlreadyPresent = false;
+			// wenn "this" kein ConflictReason (sondern ein ICR), dann ist es ohnehin hinfällig.
+			//TODO: für den zweiten Teil stimmt das doch nciht mehr, oder?!!
+			if(this instanceof ConflictReason){
+				//Sonst muss geprüft werden,
+				// 1. dass der use-Knoten noch nicht durch ein additionallyInvolvedConflictAtoms referenziert wird 
+				//		(dieses würde sonst zum vollständigen CA und zu Duplikaten in der Ergebnissen führen)
+				Set<Node> useNodesOfLhsOfR2OfAdditionallyInvolvedConflictAtoms = ((ConflictReason)this).getAllActiveInvolvedUseNodesOfLhsOfR2();
+				if(useNodesOfLhsOfR2OfAdditionallyInvolvedConflictAtoms.contains(potentiallyUseNodeInLhsOfR2))
+					potentialUseNodeCompletesContainedBA = true;
+			}
+				// 2. dass für das neue uncovered CA der zweite Knoten noch nicht vorhanden ist
+				/*		d.h. hier je nach potential use node darf der andere noch nicht vom S1-graph per mapping referenziert werden!
+				 */
+//				Node useNodeOfUncoveredCAInLhsOfR2 = uncoveredCA.getSpan().getMappingIntoRule2(shouldntBeUsedYetNode).getImage();
+				Set<Node> useNodesOfLhsOfR2OfAllInvolvedConflictAtoms = getAllUseNodesOfLhsOfR2();//getAllUseNodesOfLhsOfR2OfAllInvolvedConflictAtoms();
+				if(useNodesOfLhsOfR2OfAllInvolvedConflictAtoms.contains(potentiallyUseNodeInLhsOfR2))
+					secondUncoveredCANodeIsAlreadyPresent = true;
+			return potentialUseNodeCompletesContainedBA || secondUncoveredCANodeIsAlreadyPresent;
+		}
+
+		private Set<Node> getAllUseNodesOfLhsOfR2() {
+			Set<Node> allUseNodesOfLhsOfR2 = new HashSet<Node>();
+			for(Mapping mappingInRule2 : mappingsInRule2){
+				allUseNodesOfLhsOfR2.add(mappingInRule2.getImage());
+			}
+			return allUseNodesOfLhsOfR2;
+		}
+
+	}
+	
+	//nur der Vollständigkeit eingeführt und zur Doifferenzierung 
+	// zur Bildung der entsprechenden Ergebnisse für Abgleiche mit ess. CPA
+	public class ConflictReason extends InitialReason {
+		
+
+		Set<ConflictAtom> additionallyInvolvedConflictAtoms;
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+//			if(true)
+//			return false;
+			//VORSICHT! durch die Kombination von MCRs und BAs kann es vorkommen, dass zwei CRs trotz unterschiedlicher MCRs den gleichen CR darstellen!
+//			if (!super.equals(obj)) {  
+//				return false;
+//			}
+			if (!(obj instanceof ConflictReason)) {
+				return false;
+			}
+			ConflictReason other = (ConflictReason) obj;
+			System.err.println("equals() comparison:");
+			System.err.println(this.toShortString());
+			System.err.println(other.toShortString());
+			if (!getOuterType().equals(other.getOuterType())) {
+				return false;
+			}
+			//VORSICHT! durch die Kombination von MCRs und BAs kann es vorkommen, dass zwei CRs trotz unterschiedlicher MCRs den gleichen CR darstellen!
+//			if (additionallyInvolvedConflictAtoms == null) {
+//				if (other.additionallyInvolvedConflictAtoms != null) {
+//					return false;
+//				}
+//			} else if (!additionallyInvolvedConflictAtoms.equals(other.additionallyInvolvedConflictAtoms)) {
+//				return false;
+//			}
+			if (graph.getNodes().size() != other.getGraph().getNodes().size()) {
+				return false;
+			}
+			if(additionallyInvolvedConflictAtoms.size() != other.additionallyInvolvedConflictAtoms.size()){
+				System.out.println("might help");				
+			}
+//			if (graph.getEdges().size() != other.getGraph().getEdges().size()) {
+//				return false;
+//			}
+			if (mappingsInRule1.size() != other.getMappingsInRule1().size()) {
+				return false;
+			}
+			if (mappingsInRule2.size() != other.getMappingsInRule2().size()) {
+				return false;
+			}
+			for(Node spanNode : graph.getNodes()){
+				/* je Knoten des Graphs über R1 den passenden Knoten aus dem other.Graph identifizieren
+				 * dann überprüfen, ob die beiden zugeordneten R2 Knoten die selben (== nicht equals) sind.
+				 * sobald dies für einen der Graph Knoten nicht der Fall ist: return true.
+				 */
+				Mapping mappingFromGraphToRule1 = getMappingIntoRule1(spanNode);
+				Node nodeInRule1 = mappingFromGraphToRule1.getImage();
+				Mapping mappingOtherGraphToR1 = other.getMappingFromGraphToRule1(nodeInRule1);
+				if(mappingOtherGraphToR1 != null){ // if no mapping to the node in R1 exists it might not be a duplicate
+					Node otherSpanNode = mappingOtherGraphToR1.getOrigin();  
+					Node otherR2Node = other.getMappingIntoRule2(otherSpanNode).getImage(); // could cause a NPE, but would be a bug. (invalide instance)
+					Node r2Node = getMappingIntoRule2(spanNode).getImage();
+					if(otherR2Node != r2Node){
+						System.err.println("ConflictReasons NOT equal");
+						return false;
+					}
+				}else {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		public ConflictReason(InitialReason initialReason, Node boundaryNodeOfCA, Node usedNodeInLhsOfR2, ConflictAtom additionallyInvolvedConflictAtom) {
+//			eigene Kopie des S1 Graph
+//			eigene Kopie der Mappings in R1
+//			eigene Kopie der Mappings in R1
+			super(initialReason); // erledigt alles! 
+			
+			//TODO: 
+			// lhs boundary node of rule 1
+			Node boundaryNodeOfRule1 = additionallyInvolvedConflictAtom.getSpan().getMappingIntoRule1(boundaryNodeOfCA).getImage();
+			
+			// - hinzufuegen des use-nodes zum graph
+			String nameOfNewBoundaryNode = boundaryNodeOfRule1.getName()+"_"+usedNodeInLhsOfR2.getName();
+			Node newBoundaryNodeInSpan = henshinFactory.createNode(graph, boundaryNodeOfCA.getType(), nameOfNewBoundaryNode);
+			// - mapping erstellen
+			Mapping mappingInR1 = henshinFactory.createMapping(newBoundaryNodeInSpan, boundaryNodeOfRule1);
+			mappingsInRule1.add(mappingInR1);
+			Mapping mappingInR2 = henshinFactory.createMapping(newBoundaryNodeInSpan, usedNodeInLhsOfR2);
+			mappingsInRule2.add(mappingInR2);
+			// ggf. pruefen, dass es keine zu loeschende Kante gibt und somit kein vollstaendiges atom ist 
+			// 		(das waere schon durch die initialReason abgedeckt!!) 
+			
+			additionallyInvolvedConflictAtoms = new HashSet<AtomicCoreCPA.ConflictAtom>();
+			additionallyInvolvedConflictAtoms.add(additionallyInvolvedConflictAtom);
+			//wenn das ursprüngliche "InitialReason initialReason" bereits ein CR ist, 
+			// so müssen dessen additionallyInvolvedConflictAtoms auch noch dem neuen CR hinzugefügt werden.
+			if(initialReason instanceof ConflictReason){
+				additionallyInvolvedConflictAtoms.addAll(((ConflictReason) initialReason).getAdditionallyInvolvedConflictAtoms());
+			}
+		}
+
+		public ConflictReason(InitialReason initialReason) {
+			super(initialReason); // erledigt alles! 
+			additionallyInvolvedConflictAtoms = new HashSet<AtomicCoreCPA.ConflictAtom>();
+		}
+
+		public Set<Node> getAllUseNodesOfLhsOfR2OfAllInvolvedConflictAtoms() {
+			Set<Node> allUseNodesOfLhsOfR2OfAllInvolvedConflictAtoms = new HashSet<Node>();
+			for(Mapping mappingInRule2 : mappingsInRule2){
+				allUseNodesOfLhsOfR2OfAllInvolvedConflictAtoms.add(mappingInRule2.getImage());
+			}
+			return allUseNodesOfLhsOfR2OfAllInvolvedConflictAtoms;
+		}
+
+		public Set<Node> getAllActiveInvolvedUseNodesOfLhsOfR2OfAdditionallyInvolvedConflictAtoms() {
+			Set<Node> allUseNodesOfLhsOfR2OfAdditionallyInvolvedConflictAtoms = new HashSet<Node>();
+			for(ConflictAtom ca : additionallyInvolvedConflictAtoms){
+				Set<Mapping> mappingsInRule2 = ca.getSpan().getMappingsInRule2();
+				for(Mapping mappingInRule2 : mappingsInRule2){
+					System.out.println("bla");
+					allUseNodesOfLhsOfR2OfAdditionallyInvolvedConflictAtoms.add(mappingInRule2.getImage());
+				}
+			}
+			return allUseNodesOfLhsOfR2OfAdditionallyInvolvedConflictAtoms;
+		}
+
+		public Set<Node> getAllActiveInvolvedUseNodesOfLhsOfR2() {
+			Set<Node> allUseNodesOfLhsOfR2 = new HashSet<Node>();
+			for(Mapping mappingInR2 : mappingsInRule2){
+				allUseNodesOfLhsOfR2.add(mappingInR2.getImage());
+			}
+			return allUseNodesOfLhsOfR2;
+		}
+
+		/**
+		 * @return the additionallyInvolvedConflictAtoms
+		 */
+		public Set<ConflictAtom> getAdditionallyInvolvedConflictAtoms() {
+			return additionallyInvolvedConflictAtoms;
+		}
+
+		private AtomicCoreCPA getOuterType() {
+			return AtomicCoreCPA.this;
+		}
+
+		public PushoutResult getPushoutResult() {
+			// TODO vielleicht einführen eines Feldes, womit das einmal erzeugte PoR gehalten wird (anstelle es wiederholt zu erzeugen) 
+			// 		- Notwendig für die häufig Nutzung mit dem Comparator
+			return new PushoutResult(rule1, this, rule2);
+		}
+		
 	}
 
 	public PushoutResult newPushoutResult(Rule rule1, Span span, Rule rule2) {
@@ -1373,16 +2086,30 @@ public class AtomicCoreCPA {
 					Node discardNode =  mappingsOfRule2.get(l2node);
 					mergedNode.setName(mergedNode.getName()+","+discardNode.getName());
 
+					Set<Edge> duplicateEdgesToDelete = new HashSet<Edge>();
+					
 					List<Edge> l2nodesIncoming = new LinkedList<Edge>(discardNode.getIncoming());
 					for (Edge eIn : l2nodesIncoming) {
-						eIn.setTarget(mergedNode);
+						 // hier prüfen, ob es zwischen den beiden Knoten bereits eine Kante des Typs gibt. Dann keine weitere Kante erzeugen!
+						if(mergedNode.getIncoming(eIn.getType(), eIn.getSource()) != null){
+							/*löschen der Kante*/
+							duplicateEdgesToDelete.add(eIn);
+						}else{  
+							eIn.setTarget(mergedNode);
+						}
 					}
 
 					List<Edge> l2nodesOutgoing = new LinkedList<Edge>(discardNode.getOutgoing());
-					for (Edge eOut : l2nodesOutgoing) {
-						eOut.setSource(mergedNode);
+					for (Edge eOut : l2nodesOutgoing) { 
+						 // hier prüfen, ob es zwischen den beiden Knoten bereits eine Kante des Typs gibt. Dann keine weitere Kante erzeugen!
+						if(mergedNode.getOutgoing(eOut.getType(), eOut.getTarget()) != null){
+							/*löschen der Kante*/
+							duplicateEdgesToDelete.add(eOut);
+						}else{
+							eOut.setSource(mergedNode);
+						}
 					}
-
+					
 					mappingsOfRule2.put(l2node, mergedNode);
 					
 					if (discardNode.getAllEdges().size() > 0) {
@@ -1394,6 +2121,11 @@ public class AtomicCoreCPA {
 					Graph graphOfNodeL2 = discardNode.getGraph();
 					boolean removedNode = graphOfNodeL2.removeNode(discardNode);
 					System.err.println("removedNode: " + removedNode);
+					
+					// löschen der doppelten Kanten 
+					for(Edge edgeToDelete : duplicateEdgesToDelete){
+						graphOfNodeL2.removeEdge(edgeToDelete);
+					}
 				}
 			}
 
@@ -1753,12 +2485,12 @@ public class AtomicCoreCPA {
 		
 		
 		// TODO: Liste für die gemeinsamen Mappings in rule1
-		List<Mapping> mappingsOfNewSpanInRule1 = new LinkedList<Mapping>();
+		Set<Mapping> mappingsOfNewSpanInRule1 = new HashSet<Mapping>();
 		mappingsOfNewSpanInRule1.addAll(mappingsOfSpan1InRule1Copies);
 		mappingsOfNewSpanInRule1.addAll(mappingsOfSpan2InRule1Copies);
 		
 		// TODO: Liste für die gemeinsamen Mappings in rule2
-		List<Mapping> mappingsOfNewSpanInRule2 = new LinkedList<Mapping>();
+		Set<Mapping> mappingsOfNewSpanInRule2 = new HashSet<Mapping>();
 		mappingsOfNewSpanInRule2.addAll(mappingsOfSpan1InRule2Copies);
 		mappingsOfNewSpanInRule2.addAll(mappingsOfSpan2InRule2Copies);
 		
@@ -1777,5 +2509,14 @@ public class AtomicCoreCPA {
 		InitialReason newInitialReason =  new InitialReason(mappingsOfNewSpanInRule1, graph1Copy, mappingsOfNewSpanInRule2, originMCR);
 		
 		return newInitialReason;
+	}
+
+	public Set<ConflictAtom> extractEdgeConflictAtoms(List<ConflictAtom> computedConflictAtoms) {
+		Set<ConflictAtom> edgeConflictAtoms = new HashSet<ConflictAtom>();
+		for(ConflictAtom ca : computedConflictAtoms){
+			if(ca.isDeleteEdgeConflictAtom())
+				edgeConflictAtoms.add(ca);
+		}
+		return edgeConflictAtoms;
 	}
 }
