@@ -10,6 +10,7 @@ import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.henshin.cpa.atomic.DependencyAtom;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
 import org.eclipse.emf.henshin.model.Graph;
 import org.eclipse.emf.henshin.model.Module;
@@ -82,12 +83,12 @@ public class ComputeConflictAtomsTest {
 		
 		//TODO: check that the two Reasons had been found AND that the three ConflictAtoms only have two (minimal)conflict reasons!
 		for(ConflictAtom conflictAtom : computedConflictAtoms){
-			Set<Span> reasons = conflictAtom.getReasons();
+			Set<MinimalConflictReason> reasons = conflictAtom.getMinimalConflictReasons();
 			Assert.assertEquals(1, reasons.size());
 		}
 		
-		Span minimalConflictReasonOfMethod_3_14_Atom = conflictAtom_Method_3_14.getReasons().iterator().next();
-		Span minimalConflictReasonOfParameter_5_15_Atom = conflictAtom_Parameter_5_15.getReasons().iterator().next();
+		Span minimalConflictReasonOfMethod_3_14_Atom = conflictAtom_Method_3_14.getMinimalConflictReasons().iterator().next();
+		Span minimalConflictReasonOfParameter_5_15_Atom = conflictAtom_Parameter_5_15.getMinimalConflictReasons().iterator().next();
 //		System.out.println(conflictReasonOfMethod_3_14_Atom);
 //		System.out.println(conflictReasonOfParameter_5_15_Atom);
 		Assert.assertTrue(minimalConflictReasonOfMethod_3_14_Atom.equals(minimalConflictReasonOfParameter_5_15_Atom));
