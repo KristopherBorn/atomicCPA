@@ -2,8 +2,10 @@ package org.eclipse.emf.henshin.cpa.atomic.unitTest;
 
 import static org.junit.Assert.*;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.PushoutResult;
@@ -147,8 +149,8 @@ public class FindDanglingEdgesTest {
 
 		HenshinFactory henshinFactory = new HenshinFactoryImpl();
 		Graph graphOfSpan = henshinFactory.createGraph();
-		List<Mapping> rule1Mappings = new LinkedList<Mapping>();
-		List<Mapping> rule2Mappings = new LinkedList<Mapping>();
+		Set<Mapping> rule1Mappings = new HashSet<Mapping>();
+		Set<Mapping> rule2Mappings = new HashSet<Mapping>();
 		Node commonNode1_11OfSpan = henshinFactory.createNode(graphOfSpan, node1InLhsOfRule1.getType(), "1_11");
 		Mapping node1InRule1Mapping = henshinFactory.createMapping(commonNode1_11OfSpan, node1InLhsOfRule1);
 		rule1Mappings.add(node1InRule1Mapping);
