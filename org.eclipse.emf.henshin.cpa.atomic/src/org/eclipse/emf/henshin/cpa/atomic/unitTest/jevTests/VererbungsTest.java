@@ -28,7 +28,7 @@ public class VererbungsTest {
 		System.out.println("\n\t\t1: " + firstS + " --> " + secondC);
 
 		System.out.println("\t\t\tAtomic");
-		Conditions _1 = new Conditions(new Node(1));
+		Conditions _1 = new Conditions(new Node(2));
 		AtomicTester tester = new AtomicTester(path, firstS, secondC);
 		tester.print();
 		assertTrue("Minimal Conflict Reasons are not 1", tester.check(new MCR(1)));
@@ -88,7 +88,7 @@ public class VererbungsTest {
 		System.out.println("\n\t\t3: " + firstC + " --> " + secondC);
 
 		System.out.println("\t\t\tAtomic");
-		Conditions _1 = new Conditions(new Node(1));
+		Conditions _1 = new Conditions(new Node(3));
 		AtomicTester tester = new AtomicTester(path, firstC, secondC);
 		tester.print();
 		assertTrue("Minimal Conflict Reasons are not 1", tester.check(new MCR(1)));
@@ -120,8 +120,8 @@ public class VererbungsTest {
 		System.out.println("\t\t\tAtomic");
 		AtomicTester tester = new AtomicTester(path, firstC, secondS);
 		tester.print();
-		assertTrue("Minimal Conflict Reasons are not 1", tester.check(new MCR(0)));
-		assertTrue("Initial Conflict Reasons are not 1", tester.check(new ICR(0)));
+		assertTrue("Minimal Conflict Reasons are not 1", tester.check(new MCR(1)));
+		assertTrue("Initial Conflict Reasons are not 1", tester.check(new ICR(1)));
 		tester.ready();
 	}
 
