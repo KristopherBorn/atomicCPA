@@ -1,30 +1,17 @@
 package org.eclipse.emf.henshin.cpa.atomic.unitTest;
 
-import static org.junit.Assert.*;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.ecore.EPackage;
-import org.eclipse.emf.henshin.cpa.atomic.ProduceUseAtomicCoreCPA;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
-import org.eclipse.emf.henshin.interpreter.EGraph;
-import org.eclipse.emf.henshin.interpreter.impl.EGraphImpl;
-import org.eclipse.emf.henshin.model.Action;
-import org.eclipse.emf.henshin.model.HenshinFactory;
 import org.eclipse.emf.henshin.model.Module;
-import org.eclipse.emf.henshin.model.Node;
 import org.eclipse.emf.henshin.model.Rule;
 import org.eclipse.emf.henshin.model.Unit;
 import org.eclipse.emf.henshin.model.resource.HenshinResourceSet;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import org.junit.Assert;
@@ -63,7 +50,7 @@ public class SimpleTest {
 		
 		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(deleteARule,
 				useAwithBRule);
-		Set<Span> reasons = new HashSet<>();//
+		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
 			atomicCoreCPA.computeMinimalConflictReasons(deleteARule, useAwithBRule, candidate,
 					reasons);
@@ -104,14 +91,14 @@ public class SimpleTest {
 		
 		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(deleteARule,
 				useAwithBRule);
-		Set<Span> reasons = new HashSet<>();//
+		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
 			atomicCoreCPA.computeMinimalConflictReasons(deleteARule, useAwithBRule, candidate,
 					reasons);
 		}
 		Assert.assertEquals(1, reasons.size());
 		
-		Set<Span> minimalConflictReasons = reasons;
+		Set<MinimalConflictReason> minimalConflictReasons = reasons;
 		System.out.println("number of minimal conflict reasons: "+minimalConflictReasons.size());
 		for(Span minimalConflictReason : minimalConflictReasons){
 			System.out.println(minimalConflictReason);
@@ -144,14 +131,14 @@ public class SimpleTest {
 		
 		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(deleteARule,
 				useAwithBRule);
-		Set<Span> reasons = new HashSet<>();//
+		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
 			atomicCoreCPA.computeMinimalConflictReasons(deleteARule, useAwithBRule, candidate,
 					reasons);
 		}
 		Assert.assertEquals(1, reasons.size());
 		
-		Set<Span> minimalConflictReasons = reasons;
+		Set<MinimalConflictReason> minimalConflictReasons = reasons;
 		System.out.println("number of minimal conflict reasons: "+minimalConflictReasons.size());
 		for(Span minimalConflictReason : minimalConflictReasons){
 			System.out.println(minimalConflictReason);
@@ -189,14 +176,14 @@ public class SimpleTest {
 		
 		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(deleteARule,
 				useAwithBRule);
-		Set<Span> reasons = new HashSet<>();//
+		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
 			atomicCoreCPA.computeMinimalConflictReasons(deleteARule, useAwithBRule, candidate,
 					reasons);
 		}
 		Assert.assertEquals(1, reasons.size());
 		
-		Set<Span> minimalConflictReasons = reasons;
+		Set<MinimalConflictReason> minimalConflictReasons = reasons;
 		System.out.println("number of minimal conflict reasons: "+minimalConflictReasons.size());
 		for(Span minimalConflictReason : minimalConflictReasons){
 			System.out.println(minimalConflictReason);
