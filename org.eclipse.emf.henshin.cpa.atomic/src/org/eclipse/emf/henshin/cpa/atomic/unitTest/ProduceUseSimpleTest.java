@@ -72,11 +72,11 @@ public class ProduceUseSimpleTest {
 		Assert.assertEquals(1, dependencyAtom.getSpan().getMappingsInRule1().size());
 		Assert.assertEquals(1, dependencyAtom.getSpan().getMappingsInRule2().size());
 		
-		Mapping mappingInRule1 = dependencyAtom.getSpan().getMappingsInRule1().get(0);
+		Mapping mappingInRule1 = dependencyAtom.getSpan().getMappingsInRule1().iterator().next(); //get(0);
 		Assert.assertTrue(mappingInRule1.getOrigin().getGraph() == dependencyAtom.getSpan().getGraph());
 		Assert.assertTrue(mappingInRule1.getImage() == createA_Rule.getRhs().getNodes().get(0));
 		
-		Mapping mappingInRule2 = dependencyAtom.getSpan().getMappingsInRule2().get(0);
+		Mapping mappingInRule2 = dependencyAtom.getSpan().getMappingsInRule2().iterator().next(); //get(0);
 		Assert.assertTrue(mappingInRule2.getOrigin().getGraph() == dependencyAtom.getSpan().getGraph());
 		Assert.assertTrue(mappingInRule2.getImage() == useA_Rule.getLhs().getNodes().get(0));
 		

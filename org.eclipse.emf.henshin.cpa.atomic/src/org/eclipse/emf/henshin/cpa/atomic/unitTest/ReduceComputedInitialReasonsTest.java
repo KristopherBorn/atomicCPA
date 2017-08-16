@@ -164,7 +164,7 @@ public class ReduceComputedInitialReasonsTest {
 		Set<Span> allMinimalConflictReasons = new HashSet<Span>();
 		//TODO: check that the two Reasons had been found AND that the three ConflictAtoms only have two (minimal)conflict reasons!
 		for(ConflictAtom conflictAtom : computedConflictAtoms){
-			Set<Span> reasons = conflictAtom.getReasons();
+			Set<MinimalConflictReason> reasons = conflictAtom.getMinimalConflictReasons();
 			Assert.assertEquals(1, reasons.size());
 			allMinimalConflictReasons.addAll(reasons);
 		}
@@ -198,8 +198,8 @@ public class ReduceComputedInitialReasonsTest {
 		Set<InitialReason> filteredOutResults = new HashSet<InitialReason>();
 		int skippedCRs = 0;
 		for(InitialReason initialReason : computedInitialReason){
-			List<Mapping> mappingsInRule1 = initialReason.getMappingsInRule1();
-			List<Mapping> mappingsInRule2 = initialReason.getMappingsInRule2();
+			Set<Mapping> mappingsInRule1 = initialReason.getMappingsInRule1();
+			Set<Mapping> mappingsInRule2 = initialReason.getMappingsInRule2();
 //			// track erroneous mappings
 //			boolean skipCR = false;
 //			Set<Node> nodesInrule2 = new HashSet<Node>();

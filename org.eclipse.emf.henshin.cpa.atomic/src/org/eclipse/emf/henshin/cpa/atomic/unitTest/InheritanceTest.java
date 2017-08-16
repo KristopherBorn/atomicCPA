@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
 import org.eclipse.emf.henshin.model.Module;
 import org.eclipse.emf.henshin.model.Rule;
@@ -143,7 +144,7 @@ public class InheritanceTest {
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeWithExecutable,
 				pullUpEncapsulatedAttributeWithExecutable);
-		Set<Span> reasons = new HashSet<>();//
+		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
 			atomicCoreCPA.computeMinimalConflictReasons(decapsulateAttributeWithExecutable, pullUpEncapsulatedAttributeWithExecutable, candidate,
 					reasons);
@@ -159,7 +160,7 @@ public class InheritanceTest {
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeWithExecutable,
 				decapsulateAttributeWithExecutable);
-		Set<Span> reasons = new HashSet<>();//
+		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
 			atomicCoreCPA.computeMinimalConflictReasons(decapsulateAttributeWithExecutable, decapsulateAttributeWithExecutable, candidate,
 					reasons);
@@ -178,7 +179,7 @@ public class InheritanceTest {
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pullUpEncapsulatedAttributeWithExecutable,
 				decapsulateAttributeWithExecutable);
-		Set<Span> reasons = new HashSet<>();//
+		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
 			atomicCoreCPA.computeMinimalConflictReasons(pullUpEncapsulatedAttributeWithExecutable, decapsulateAttributeWithExecutable, candidate,
 					reasons);
@@ -197,7 +198,7 @@ public class InheritanceTest {
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pullUpEncapsulatedAttributeWithExecutable,
 				pullUpEncapsulatedAttributeWithExecutable);
-		Set<Span> reasons = new HashSet<>();//
+		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
 			atomicCoreCPA.computeMinimalConflictReasons(pullUpEncapsulatedAttributeWithExecutable, pullUpEncapsulatedAttributeWithExecutable, candidate,
 					reasons);

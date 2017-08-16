@@ -3,13 +3,19 @@ package org.eclipse.emf.henshin.cpa.atomic.unitTest;
 import static org.junit.Assert.*;
 
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 import org.eclipse.emf.common.util.EList;
 //import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA;
 import org.eclipse.emf.henshin.cpa.atomic.DependencyAtom;
+import org.eclipse.emf.henshin.cpa.result.CPAResult;
+import org.eclipse.emf.henshin.cpa.CPAOptions;
+import org.eclipse.emf.henshin.cpa.CpaByAGG;
+import org.eclipse.emf.henshin.cpa.ICriticalPairAnalysis;
 import org.eclipse.emf.henshin.cpa.MinimalConflict;
+import org.eclipse.emf.henshin.cpa.UnsupportedRuleException;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.InitialReason;
@@ -88,14 +94,14 @@ public class ComputeInitialReasonTest {
 			Set<Span> allMinimalConflictReasons = new HashSet<Span>();
 			//TODO: check that the two Reasons had been found AND that the three ConflictAtoms only have two (minimal)conflict reasons!
 			for(ConflictAtom conflictAtom : computedConflictAtoms){
-				Set<Span> reasons = conflictAtom.getReasons();
+				Set<MinimalConflictReason> reasons = conflictAtom.getMinimalConflictReasons();
 				Assert.assertEquals(1, reasons.size());
 				allMinimalConflictReasons.addAll(reasons);
 			}
 			Assert.assertEquals(2, allMinimalConflictReasons.size());
 			
-			Span initialReasonOfMethod_3_14_Atom = conflictAtom_Method_3_14.getReasons().iterator().next();
-			Span initialReasonOfParameter_5_15_Atom = conflictAtom_Parameter_5_15.getReasons().iterator().next();
+			Span initialReasonOfMethod_3_14_Atom = conflictAtom_Method_3_14.getMinimalConflictReasons().iterator().next();
+			Span initialReasonOfParameter_5_15_Atom = conflictAtom_Parameter_5_15.getMinimalConflictReasons().iterator().next();
 	//		System.out.println(initialReasonOfMethod_3_14_Atom);
 	//		System.out.println(initialReasonOfParameter_5_15_Atom);
 			Assert.assertTrue(initialReasonOfMethod_3_14_Atom.equals(initialReasonOfParameter_5_15_Atom));
@@ -107,8 +113,6 @@ public class ComputeInitialReasonTest {
 			
 			Set<InitialReason> computeInitialReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
 			Assert.assertEquals(3, computeInitialReason.size());
-			
-			//TODO: prüfen, dass es 5 InitialRason gibt, die sich aus einem zusammensetzen und 3 die sich asu zweien zusammen setzen und einen, der sich aus dreien zusammensetzt!
 			
 			
 	//		TODO: Prüfen!
@@ -160,18 +164,11 @@ public class ComputeInitialReasonTest {
 		Set<Span> allMinimalConflictReasons = new HashSet<Span>();
 		//TODO: check that the two Reasons had been found AND that the three ConflictAtoms only have two (minimal)conflict reasons!
 		for(ConflictAtom conflictAtom : computedConflictAtoms){
-			Set<Span> reasons = conflictAtom.getReasons();
+			Set<MinimalConflictReason> reasons = conflictAtom.getMinimalConflictReasons();
 			Assert.assertEquals(1, reasons.size());
 			allMinimalConflictReasons.addAll(reasons);
 		}
 		Assert.assertEquals(5, allMinimalConflictReasons.size());
-		
-		// alles alter TestCode durchs kopieren der im Papier betrachteten Regelreihenfolge!
-//		Span conflictReasonOfMethod_3_14_Atom = conflictAtom_Method_3_14.getReasons().iterator().next();
-//		Span conflictReasonOfParameter_5_15_Atom = conflictAtom_Parameter_5_15.getReasons().iterator().next();
-////		System.out.println(conflictReasonOfMethod_3_14_Atom);
-////		System.out.println(conflictReasonOfParameter_5_15_Atom);
-//		Assert.assertTrue(conflictReasonOfMethod_3_14_Atom.equals(conflictReasonOfParameter_5_15_Atom));
 		
 		Set<MinimalConflictReason> minimalConflictReasons = new HashSet<MinimalConflictReason>();
 		for(Span minimalConflictReason : allMinimalConflictReasons){
@@ -189,6 +186,32 @@ public class ComputeInitialReasonTest {
 		// ABER: dazu müsste zuerst aus den ConflictREasons jeweils ein vollständiger Overlap als Instanz erzeugt werden.
 		// SEHR AUFWENDIG!!!
 		
+	}
+	
+	
+
+	@Test
+	public void essCpaTest() {
+		
+		ICriticalPairAnalysis cpaByAGG = new CpaByAGG();
+		List<Rule> r1 = new LinkedList<Rule>();
+		r1.add(decapsulateAttributeRule);
+		List<Rule> r2  = new LinkedList<Rule>();
+		r2.add(pullUpEncapsulatedAttributeRule);
+		CPAOptions options = new CPAOptions();
+		options.setEssential(true);
+		CPAResult runConflictAnalysis;
+		int amountOfEssConflicts = -1;
+		try {
+			cpaByAGG.init(r2, r2, options);
+			runConflictAnalysis = cpaByAGG.runConflictAnalysis();
+			amountOfEssConflicts = runConflictAnalysis.getCriticalPairs().size();
+			System.err.println("amount of ess CPs: " + amountOfEssConflicts);
+		} catch (UnsupportedRuleException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		assertEquals(3, amountOfEssConflicts);
 	}
 
 }

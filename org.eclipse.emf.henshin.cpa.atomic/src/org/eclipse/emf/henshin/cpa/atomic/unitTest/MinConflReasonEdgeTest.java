@@ -110,7 +110,7 @@ public class MinConflReasonEdgeTest {
 //			assertEquals(1, nodesOfCandidate.size());
 //		}
 
-		Set<Span> mCRs = new HashSet<>();//
+		Set<MinimalConflictReason> mCRs = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
 			atomicCoreCPA.computeMinimalConflictReasons(pushDownGroupRule, pushDownGroupRulePreserve, candidate,
 					mCRs);
@@ -209,7 +209,7 @@ public class MinConflReasonEdgeTest {
 //			assertEquals(1, nodesOfCandidate.size());
 //		}
 
-		Set<Span> mCRs = new HashSet<>();//
+		Set<MinimalConflictReason> mCRs = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
 			atomicCoreCPA.computeMinimalConflictReasons(pushDownGroupRule, pushDownGroupRulePreserve, candidate,
 					mCRs);
@@ -310,7 +310,7 @@ public class MinConflReasonEdgeTest {
 //			assertEquals(1, nodesOfCandidate.size());
 //		}
 
-		Set<Span> mCRs = new HashSet<>();//
+		Set<MinimalConflictReason> mCRs = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
 			atomicCoreCPA.computeMinimalConflictReasons(pushDownGroupRule, pushDownGroupRulePreserve, candidate,
 					mCRs);

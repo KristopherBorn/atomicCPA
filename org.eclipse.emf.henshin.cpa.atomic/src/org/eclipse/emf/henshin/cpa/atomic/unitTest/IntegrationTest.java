@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
 import org.eclipse.emf.henshin.model.Module;
 import org.eclipse.emf.henshin.model.Rule;
@@ -125,7 +126,7 @@ public class IntegrationTest {
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeRule,
 				pullUpEncapsulatedAttributeRule);
-		Set<Span> reasons = new HashSet<>();//
+		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
 			atomicCoreCPA.computeMinimalConflictReasons(decapsulateAttributeRule, pullUpEncapsulatedAttributeRule, candidate,
 					reasons);
@@ -141,7 +142,7 @@ public class IntegrationTest {
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeRule,
 				decapsulateAttributeRule);
-		Set<Span> reasons = new HashSet<>();//
+		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
 			atomicCoreCPA.computeMinimalConflictReasons(decapsulateAttributeRule, decapsulateAttributeRule, candidate,
 					reasons);
@@ -160,7 +161,7 @@ public class IntegrationTest {
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pullUpEncapsulatedAttributeRule,
 				decapsulateAttributeRule);
-		Set<Span> reasons = new HashSet<>();//
+		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
 			atomicCoreCPA.computeMinimalConflictReasons(pullUpEncapsulatedAttributeRule, decapsulateAttributeRule, candidate,
 					reasons);
@@ -179,7 +180,7 @@ public class IntegrationTest {
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pullUpEncapsulatedAttributeRule,
 				pullUpEncapsulatedAttributeRule);
-		Set<Span> reasons = new HashSet<>();//
+		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
 			atomicCoreCPA.computeMinimalConflictReasons(pullUpEncapsulatedAttributeRule, pullUpEncapsulatedAttributeRule, candidate,
 					reasons);
