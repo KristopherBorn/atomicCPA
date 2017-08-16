@@ -58,8 +58,6 @@ public class AttributeTest {
 	
 	@Test
 	public void extendedAChangeUseAtomicTest(){
-		
-		
 		final String PATH = "testData/jevsTests/attribute/";
 		final String henshinFileName = "attributeRules.henshin";
 
@@ -82,7 +80,7 @@ public class AttributeTest {
 		
 		Set<Span> allMinimalConflictReasons = new HashSet<Span>();
 		for(ConflictAtom conflictAtom : computedConflictAtoms){
-			Set<Span> reasons = conflictAtom.getReasons();
+			Set<MinimalConflictReason> reasons = conflictAtom.getMinimalConflictReasons();
 			Assert.assertEquals(1, reasons.size());
 			allMinimalConflictReasons.addAll(reasons);
 		}
