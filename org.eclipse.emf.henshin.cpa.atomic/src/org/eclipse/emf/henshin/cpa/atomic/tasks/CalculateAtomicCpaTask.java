@@ -7,10 +7,10 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.InitialReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.InitialConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.MinimalConflictReason;
 import org.eclipse.emf.henshin.model.Edge;
 import org.eclipse.emf.henshin.model.Mapping;
 import org.eclipse.emf.henshin.model.Rule;
@@ -38,7 +38,7 @@ public class CalculateAtomicCpaTask implements Callable<List<ConflictAtom>> {
 
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 
-		List<ConflictAtom> computeConflictAtoms = new LinkedList<AtomicCoreCPA.ConflictAtom>();
+		List<ConflictAtom> computeConflictAtoms = new LinkedList<ConflictAtom>();
 
 		long normalStartTime = System.currentTimeMillis();
 		
@@ -58,15 +58,15 @@ public class CalculateAtomicCpaTask implements Callable<List<ConflictAtom>> {
 		
 		Set<MinimalConflictReason> minimalConflictReasons = new HashSet<MinimalConflictReason>();
 		for(Span conflictReason : atomicCoreCPA.getMinimalConflictReasons()){
-			minimalConflictReasons.add(atomicCoreCPA.new MinimalConflictReason(conflictReason));
+			minimalConflictReasons.add(new MinimalConflictReason(conflictReason));
 		}
 		long conflictReasonStartTime = System.currentTimeMillis();
-		Set<InitialReason> initialReasons = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
+		Set<InitialConflictReason> initialReasons = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
 		
-		Set<InitialReason> filteredConflictReasons = new HashSet<InitialReason>(); 
-		for(InitialReason initialReason : initialReasons){
-			List<Mapping> mappingsInRule1 = initialReason.getMappingsInRule1();
-			List<Mapping> mappingsInRule2 = initialReason.getMappingsInRule2();
+		Set<InitialConflictReason> filteredConflictReasons = new HashSet<InitialConflictReason>(); 
+		for(InitialConflictReason initialReason : initialReasons){
+			Set<Mapping> mappingsInRule1 = initialReason.getMappingsInRule1();
+			Set<Mapping> mappingsInRule2 = initialReason.getMappingsInRule2();
 			List<Edge> danglingEdges = atomicCoreCPA.findDanglingEdgesByLHSOfRule2(mappingsInRule1, secondRule, mappingsInRule2);
 			if(danglingEdges.size() == 0){
 				filteredConflictReasons.add(initialReason);

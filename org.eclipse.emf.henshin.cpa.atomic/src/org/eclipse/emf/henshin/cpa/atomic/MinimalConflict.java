@@ -1,17 +1,11 @@
 package org.eclipse.emf.henshin.cpa.atomic;
 
 import java.util.List;
-import java.util.Set;
-
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.EPackage;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.ConflictAtom;
 //import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA.ConflictAtom;
 //import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA.Span;
 import org.eclipse.emf.henshin.cpa.result.ConflictKind;
 import org.eclipse.emf.henshin.cpa.result.CriticalPair;
-import org.eclipse.emf.henshin.interpreter.EGraph;
 import org.eclipse.emf.henshin.model.Graph;
 import org.eclipse.emf.henshin.model.Rule;
 

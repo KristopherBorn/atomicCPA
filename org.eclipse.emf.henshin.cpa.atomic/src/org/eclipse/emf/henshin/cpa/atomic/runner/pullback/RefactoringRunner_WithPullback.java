@@ -16,8 +16,12 @@ import org.eclipse.emf.henshin.cpa.CPAOptions;
 import org.eclipse.emf.henshin.cpa.CpaByAGG;
 import org.eclipse.emf.henshin.cpa.ICriticalPairAnalysis;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.InitialConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.MinimalConflictReason;
+//import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
+//import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
 import org.eclipse.emf.henshin.cpa.atomic.tasks.AtomicResultContainer;
 import org.eclipse.emf.henshin.cpa.atomic.tasks.CalculateAtomicCpaTask;
 import org.eclipse.emf.henshin.cpa.atomic.tasks.CalculateCpaTask;
@@ -425,7 +429,7 @@ public class RefactoringRunner_WithPullback {
 										
 										List<ConflictAtom> atomicCoreCpaConflictAtoms = resultKeeper.getConflictAtoms();
 										List<Span> atomicCoreCpaCandidates = resultKeeper.getCandidates();
-										Set<Span> atomicCoreMinimalConflictReasons = resultKeeper.getMinimalConflictReasons();
+										Set<MinimalConflictReason> atomicCoreMinimalConflictReasons = resultKeeper.getMinimalConflictReasons();
 										
 										long atomicEndTime = System.currentTimeMillis();
 										long atomiRunTime = atomicEndTime - atomicStartTime;

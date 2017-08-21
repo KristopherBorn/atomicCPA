@@ -3,8 +3,8 @@ package org.eclipse.emf.henshin.cpa.atomic.unitTest;
 import static org.junit.Assert.*;
 
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.PushoutResult;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.PushoutResult;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
 import org.eclipse.emf.henshin.model.Graph;
 import org.eclipse.emf.henshin.model.HenshinFactory;
 import org.eclipse.emf.henshin.model.Mapping;

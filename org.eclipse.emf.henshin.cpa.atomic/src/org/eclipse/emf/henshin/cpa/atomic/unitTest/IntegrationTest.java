@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.MinimalConflictReason;
 import org.eclipse.emf.henshin.model.Module;
 import org.eclipse.emf.henshin.model.Rule;
 import org.eclipse.emf.henshin.model.Unit;
@@ -124,7 +124,7 @@ public class IntegrationTest {
 	@Test
 	public void conflictMinReason_decapsulateAttr_pullUpEncAttr_Test() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeRule,
+		List<Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeRule,
 				pullUpEncapsulatedAttributeRule);
 		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
@@ -140,7 +140,7 @@ public class IntegrationTest {
 	@Test
 	public void conflictMinReason_decapsulateAttr_decapsulateAttr() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeRule,
+		List<Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeRule,
 				decapsulateAttributeRule);
 		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
@@ -159,7 +159,7 @@ public class IntegrationTest {
 	@Test
 	public void conflictMinReason_pullUpEncAttr_decapsulateAttr() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pullUpEncapsulatedAttributeRule,
+		List<Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pullUpEncapsulatedAttributeRule,
 				decapsulateAttributeRule);
 		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
@@ -178,7 +178,7 @@ public class IntegrationTest {
 	@Test
 	public void conflictMinReason_pullUpEncAttr_pullUpEncAttr() {		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pullUpEncapsulatedAttributeRule,
+		List<Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pullUpEncapsulatedAttributeRule,
 				pullUpEncapsulatedAttributeRule);
 		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {

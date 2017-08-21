@@ -6,9 +6,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.eclipse.emf.henshin.cpa.CPAOptions;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.InitialReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.InitialConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.MinimalConflictReason;
 import org.eclipse.emf.henshin.cpa.result.CPAResult;
 import org.eclipse.emf.henshin.model.Rule;
 
@@ -21,12 +22,12 @@ public class AtomicResultContainer {
 
 	List<ConflictAtom> atomicCoreCpaConflictAtoms;
 	List<Span> atomicCoreCpaCandidates;
-	Set<Span> atomicCoreCpaMinimalConflictsReasons;
+	Set<MinimalConflictReason> atomicCoreCpaMinimalConflictsReasons;
 	
 	
 	long minimalConflictReasonRunTime;
 	private long conflictReasonOverallRuneTime;
-	private Set<InitialReason> initialReasons;
+	private Set<InitialConflictReason> initialReasons;
 
 	public AtomicResultContainer(Rule firstRule, Rule secondRule) {
 		this.firstRule = firstRule;
@@ -78,9 +79,9 @@ public class AtomicResultContainer {
 	}
 
 
-	public Set<Span> getMinimalConflictReasons() { //TODO: is this a valid strategy to prevent NPEs based on returned "null"?
+	public Set<MinimalConflictReason> getMinimalConflictReasons() { //TODO: is this a valid strategy to prevent NPEs based on returned "null"?
 		if(atomicCoreCpaMinimalConflictsReasons == null){
-			return new HashSet<Span>();
+			return new HashSet<MinimalConflictReason>();
 		}else {			
 			return atomicCoreCpaMinimalConflictsReasons;
 		}
@@ -92,7 +93,7 @@ public class AtomicResultContainer {
 	}
 
 
-	public void setMinimalConflictReasons(Set<Span> overallReasons) {
+	public void setMinimalConflictReasons(Set<MinimalConflictReason> overallReasons) {
 		this.atomicCoreCpaMinimalConflictsReasons = overallReasons;
 	}
 
@@ -102,14 +103,14 @@ public class AtomicResultContainer {
 	}
 
 
-	public void setConflictReasons(Set<InitialReason> initialReasons) {
+	public void setConflictReasons(Set<InitialConflictReason> initialReasons) {
 		this.initialReasons = initialReasons;
 	}
 
 
-	public Set<InitialReason> getConflictReasons() {
+	public Set<InitialConflictReason> getConflictReasons() {
 		if(initialReasons == null){
-			return new HashSet<InitialReason>();
+			return new HashSet<InitialConflictReason>();
 		}else {			
 			return initialReasons;
 		}

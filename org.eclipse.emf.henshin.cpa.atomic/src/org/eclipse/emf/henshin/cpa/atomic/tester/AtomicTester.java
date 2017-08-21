@@ -10,9 +10,9 @@ import java.util.Set;
 import javax.naming.InitialContext;
 
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.InitialReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.InitialConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.MinimalConflictReason;
 import org.eclipse.emf.henshin.cpa.atomic.tester.Condition.Conditions;
 import org.eclipse.emf.henshin.cpa.atomic.tester.Condition.Edge;
 import org.eclipse.emf.henshin.cpa.atomic.tester.Condition.ICR;
@@ -29,7 +29,7 @@ public class AtomicTester extends Tester {
 	private Rule first;
 	private Rule second;
 	private Set<MinimalConflictReason> minimalConflictReasons;
-	private Set<InitialReason> initialReasons;
+	private Set<InitialConflictReason> initialReasons;
 	private String checked = "";
 	private int checkedCounter = 0;
 
@@ -60,16 +60,16 @@ public class AtomicTester extends Tester {
 		atomic = new AtomicCoreCPA();
 		NAME = "Atomic Tester";
 		atomic.computeConflictAtoms(first, second);
-		Set<Span> mcr = atomic.getMinimalConflictReasons();
+		Set<MinimalConflictReason> mcr = atomic.getMinimalConflictReasons();
 
 		minimalConflictReasons = new HashSet<MinimalConflictReason>();
 		for (Span conflictReason : mcr)
-			minimalConflictReasons.add(atomic.new MinimalConflictReason(conflictReason));
+			minimalConflictReasons.add(new MinimalConflictReason(conflictReason));
 
 		initialReasons = atomic.computeInitialReason(minimalConflictReasons);
 	}
 
-	public Set<InitialReason> getInitialReasons() {
+	public Set<InitialConflictReason> getInitialReasons() {
 		return initialReasons;
 	}
 
@@ -94,7 +94,7 @@ public class AtomicTester extends Tester {
 		}
 		if (edgeNode.size() == 0)
 			return true;
-		for (InitialReason initialReason : initialReasons) {
+		for (InitialConflictReason initialReason : initialReasons) {
 			Set<ModelElement> elements = initialReason.getDeletionElementsInRule1();
 //			System.out.println(elements);
 			if (!checked.contains(elements + "") && checkInitialReason(elements, edgeNode.toArray())) {

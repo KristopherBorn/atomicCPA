@@ -20,9 +20,10 @@ import org.eclipse.emf.henshin.cpa.atomic.compareLogger.deprecated.EssentialCpaL
 import org.eclipse.emf.henshin.cpa.atomic.compareLogger.deprecated.Logger;
 import org.eclipse.emf.henshin.cpa.atomic.compareLogger.deprecated.MinimalReasonLogger;
 import org.eclipse.emf.henshin.cpa.atomic.compareLogger.deprecated.NormalCpaLogger;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.MinimalConflictReason;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
 import org.eclipse.emf.henshin.cpa.atomic.tasks.AtomicResultContainer;
 import org.eclipse.emf.henshin.cpa.atomic.tasks.CalculateAtomicCpaTask;
 import org.eclipse.emf.henshin.cpa.atomic.tasks.CalculateCpaTask;
@@ -400,7 +401,7 @@ public class RefactoringRunner {
 										
 										List<ConflictAtom> atomicCoreConflictAtoms = resultKeeper.getConflictAtoms();
 										List<Span> atomicCoreCandidates = resultKeeper.getCandidates();
-										Set<Span> atomicCoreMinimalConflictReason = resultKeeper.getMinimalConflictReasons();
+										Set<MinimalConflictReason> atomicCoreMinimalConflictReason = resultKeeper.getMinimalConflictReasons();
 										
 										long atomicEndTime = System.currentTimeMillis();
 										long atomiRunTime = atomicEndTime - atomicStartTime;

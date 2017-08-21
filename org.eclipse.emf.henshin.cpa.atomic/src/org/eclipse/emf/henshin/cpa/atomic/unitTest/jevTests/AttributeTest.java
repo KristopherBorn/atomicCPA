@@ -9,10 +9,10 @@ import java.util.Set;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.InitialReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.InitialConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.MinimalConflictReason;
 import org.eclipse.emf.henshin.cpa.atomic.tester.AtomicTester;
 import org.eclipse.emf.henshin.cpa.atomic.tester.CPATester;
 import org.eclipse.emf.henshin.cpa.atomic.tester.Condition.CP;
@@ -88,10 +88,10 @@ public class AttributeTest {
 		
 		Set<MinimalConflictReason> minimalConflictReasons = new HashSet<MinimalConflictReason>();
 		for(Span minimalConflictReason : allMinimalConflictReasons){
-			minimalConflictReasons.add(atomicCoreCPA.new MinimalConflictReason(minimalConflictReason));
+			minimalConflictReasons.add(new MinimalConflictReason(minimalConflictReason));
 		}
 		
-		Set<InitialReason> computeInitialReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
+		Set<InitialConflictReason> computeInitialReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
 		Assert.assertEquals(1, computeInitialReason.size());
 	}
 

@@ -14,10 +14,10 @@ import org.eclipse.emf.henshin.cpa.CPAOptions;
 import org.eclipse.emf.henshin.cpa.CpaByAGG;
 import org.eclipse.emf.henshin.cpa.UnsupportedRuleException;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.InitialReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.InitialConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.MinimalConflictReason;
 import org.eclipse.emf.henshin.cpa.result.CPAResult;
 import org.eclipse.emf.henshin.model.Graph;
 import org.eclipse.emf.henshin.model.Module;
@@ -64,7 +64,7 @@ public class FirstTest {
 	public void test() {
 
 		List<ConflictAtom> ca = ccpa.computeConflictAtoms(execute, execute);
-		Set<Span> mcr = ccpa.getMinimalConflictReasons();
+		Set<MinimalConflictReason> mcr = ccpa.getMinimalConflictReasons();
 		
 		List<Span> candidates = ccpa.getCandidates();
 		
@@ -84,7 +84,7 @@ public class FirstTest {
 		
 		Set<MinimalConflictReason> minimalConflictReasons = new HashSet<MinimalConflictReason>();
 		for(Span conflictReason : mcr){
-			minimalConflictReasons.add(ccpa.new MinimalConflictReason(conflictReason));
+			minimalConflictReasons.add(new MinimalConflictReason(conflictReason));
 		}
 		Assert.assertEquals(3, minimalConflictReasons.size());
 		
@@ -114,10 +114,10 @@ public class FirstTest {
 		assertTrue(mcr89Found);
 		assertTrue(mcr910Found);
 		
-		Set<InitialReason> computedInitialReason = ccpa.computeInitialReason(minimalConflictReasons);
+		Set<InitialConflictReason> computedInitialReason = ccpa.computeInitialReason(minimalConflictReasons);
 		Assert.assertEquals(7, computedInitialReason.size());
 		System.err.println("conflictReasons: ");
-		for(InitialReason initialReason : computedInitialReason){
+		for(InitialConflictReason initialReason : computedInitialReason){
 //			conflictReason.getOriginMCRs()
 			System.out.println(initialReason.toShortString());
 			System.out.println(initialReason.toString());

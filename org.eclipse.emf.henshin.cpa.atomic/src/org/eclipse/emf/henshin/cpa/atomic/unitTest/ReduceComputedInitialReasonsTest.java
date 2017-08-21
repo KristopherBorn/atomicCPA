@@ -7,14 +7,12 @@ import java.util.List;
 import java.util.Set;
 
 import org.eclipse.emf.common.util.EList;
-//import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.DependencyAtom;
 import org.eclipse.emf.henshin.cpa.MinimalConflict;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.InitialReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.InitialConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.MinimalConflictReason;
 import org.eclipse.emf.henshin.model.Edge;
 import org.eclipse.emf.henshin.model.Graph;
 import org.eclipse.emf.henshin.model.Mapping;
@@ -109,7 +107,7 @@ public class ReduceComputedInitialReasonsTest {
 //				minimalConflictReasons.add(atomicCoreCPA.new MinimalConflictReason(conflictReason));
 //			}
 //			
-//			Set<InitialReason> computeConflictReason = atomicCoreCPA.computeConflictReason(minimalConflictReasons);
+//			Set<InitialConflictReason> computeConflictReason = atomicCoreCPA.computeConflictReason(minimalConflictReasons);
 //			Assert.assertEquals(3, computeConflictReason.size());
 //			
 //			//TODO: prüfen, dass es 5 CofnlictREason gibt, die sich aus einem zusammensetzen und 3 die sich asu zweien zusammen setzen und einen, der sich aus dreien zusammensetzt!
@@ -179,10 +177,10 @@ public class ReduceComputedInitialReasonsTest {
 		
 		Set<MinimalConflictReason> minimalConflictReasons = new HashSet<MinimalConflictReason>();
 		for(Span conflictReason : allMinimalConflictReasons){
-			minimalConflictReasons.add(atomicCoreCPA.new MinimalConflictReason(conflictReason));
+			minimalConflictReasons.add(new MinimalConflictReason(conflictReason));
 		}
 		
-		Set<InitialReason> computedInitialReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
+		Set<InitialConflictReason> computedInitialReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
 		Assert.assertEquals(17, computedInitialReason.size());
 		
 		//von diesen 17 potentiellen CRs verletzen 10 die dangling condition. 
@@ -194,10 +192,10 @@ public class ReduceComputedInitialReasonsTest {
 		// SEHR AUFWENDIG!!!
 		
 		// Versuch für ERkennung von danglingEdges udn somit Vermeidung der OVerapproximation:
-		Set<InitialReason> cleanedResults = new HashSet<InitialReason>();
-		Set<InitialReason> filteredOutResults = new HashSet<InitialReason>();
+		Set<InitialConflictReason> cleanedResults = new HashSet<InitialConflictReason>();
+		Set<InitialConflictReason> filteredOutResults = new HashSet<InitialConflictReason>();
 		int skippedCRs = 0;
-		for(InitialReason initialReason : computedInitialReason){
+		for(InitialConflictReason initialReason : computedInitialReason){
 			Set<Mapping> mappingsInRule1 = initialReason.getMappingsInRule1();
 			Set<Mapping> mappingsInRule2 = initialReason.getMappingsInRule2();
 //			// track erroneous mappings
@@ -226,13 +224,13 @@ public class ReduceComputedInitialReasonsTest {
 		System.err.println("filteredOutResults: "+filteredOutResults.size());
 		System.err.println("skippedCRs: "+skippedCRs);
 		
-		//TODO: print details on the remaining InitialReason
+		//TODO: print details on the remaining InitialConflictReason
 		int oneOriginMCR = 0;
 		int twoOriginMCR = 0;
 		int threeOriginMCR = 0;
 		int undefinedOriginMCR = 0;
-		Set<InitialReason> threeOriginMCR_CRs = new HashSet<InitialReason>();
-		for(InitialReason initialReason : cleanedResults){
+		Set<InitialConflictReason> threeOriginMCR_CRs = new HashSet<InitialConflictReason>();
+		for(InitialConflictReason initialReason : cleanedResults){
 			if(initialReason.getOriginMCRs().size() == 1)
 				oneOriginMCR++;
 			if(initialReason.getOriginMCRs().size() == 2)
@@ -245,7 +243,7 @@ public class ReduceComputedInitialReasonsTest {
 		System.out.println("oneOriginMCR: "+oneOriginMCR);
 		System.out.println("twoOriginMCR: "+twoOriginMCR);
 		System.out.println("threeOriginMCR: "+threeOriginMCR);
-		for(InitialReason aThreeMcrCr : threeOriginMCR_CRs){
+		for(InitialConflictReason aThreeMcrCr : threeOriginMCR_CRs){
 			aThreeMcrCr.getOriginMCRs();
 			System.out.println(aThreeMcrCr.getGraph().toString());
 		}

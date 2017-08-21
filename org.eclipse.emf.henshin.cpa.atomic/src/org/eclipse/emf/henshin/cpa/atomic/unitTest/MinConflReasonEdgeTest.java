@@ -13,10 +13,10 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil.Copier;
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.InitialReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.InitialConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.MinimalConflictReason;
 import org.eclipse.emf.henshin.model.Module;
 import org.eclipse.emf.henshin.model.Node;
 import org.eclipse.emf.henshin.model.Rule;
@@ -99,7 +99,7 @@ public class MinConflReasonEdgeTest {
 
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pushDownGroupRule, pushDownGroupRulePreserve);
+		List<Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pushDownGroupRule, pushDownGroupRulePreserve);
 //		System.out.println("HALT");
 		System.err.println("amount of conflictAtomCandidates: "+conflictAtomCandidates.size());
 		
@@ -119,7 +119,7 @@ public class MinConflReasonEdgeTest {
 		
 		for(Span mcr: mCRs){
 			System.err.println("is MCR instance of?");
-			if(mcr instanceof AtomicCoreCPA.MinimalConflictReason){
+			if(mcr instanceof MinimalConflictReason){
 				System.err.println("true");
 			}else {
 				System.err.println("false");
@@ -129,17 +129,17 @@ public class MinConflReasonEdgeTest {
 
 		Set<MinimalConflictReason> minimalConflictReasons = new HashSet<MinimalConflictReason>();
 		for(Span minimalConflictReason : mCRs){
-			minimalConflictReasons.add(atomicCoreCPA.new MinimalConflictReason(minimalConflictReason));
+			minimalConflictReasons.add(new MinimalConflictReason(minimalConflictReason));
 		}
 		
 
-		Set<InitialReason> computedConflictReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
+		Set<InitialConflictReason> computedConflictReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
 		System.err.println("amount of computedConflictReason: "+computedConflictReason.size());
 		
 		// Map<AnzahlMCR, AnzahlCRs>
 		Map<Integer, Integer> amoutOfMCRs = new HashMap<Integer, Integer>();
-		// wie groﬂ (= Anzahl Knoten) sind die InitialReason? 
-		for(InitialReason cr : computedConflictReason){
+		// wie groﬂ (= Anzahl Knoten) sind die InitialConflictReason? 
+		for(InitialConflictReason cr : computedConflictReason){
 			int amountOfMCRsInCR = cr.getOriginMCRs().size();
 			Integer amountOfCRs = amoutOfMCRs.get(amountOfMCRsInCR);
 			if(amountOfCRs == null){
@@ -198,7 +198,7 @@ public class MinConflReasonEdgeTest {
 
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pushDownGroupRule, pushDownGroupRulePreserve);
+		List<Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pushDownGroupRule, pushDownGroupRulePreserve);
 //		System.out.println("HALT");
 		System.err.println("amount of conflictAtomCandidates: "+conflictAtomCandidates.size());
 		
@@ -218,7 +218,7 @@ public class MinConflReasonEdgeTest {
 		
 		for(Span mcr: mCRs){
 			System.err.println("is MCR instance of?");
-			if(mcr instanceof AtomicCoreCPA.MinimalConflictReason){
+			if(mcr instanceof MinimalConflictReason){
 				System.err.println("true");
 			}else {
 				System.err.println("false");
@@ -228,17 +228,17 @@ public class MinConflReasonEdgeTest {
 
 		Set<MinimalConflictReason> minimalConflictReasons = new HashSet<MinimalConflictReason>();
 		for(Span minimalConflictReason : mCRs){
-			minimalConflictReasons.add(atomicCoreCPA.new MinimalConflictReason(minimalConflictReason));
+			minimalConflictReasons.add(new MinimalConflictReason(minimalConflictReason));
 		}
 		
 
-		Set<InitialReason> computedConflictReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
+		Set<InitialConflictReason> computedConflictReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
 		System.err.println("amount of computedConflictReason: "+computedConflictReason.size());
 		
 		// Map<AnzahlMCR, AnzahlCRs>
 		Map<Integer, Integer> amoutOfMCRs = new HashMap<Integer, Integer>();
-		// wie groﬂ (= Anzahl Knoten) sind die InitialReason? 
-		for(InitialReason cr : computedConflictReason){
+		// wie groﬂ (= Anzahl Knoten) sind die InitialConflictReason? 
+		for(InitialConflictReason cr : computedConflictReason){
 			int amountOfMCRsInCR = cr.getOriginMCRs().size();
 			Integer amountOfCRs = amoutOfMCRs.get(amountOfMCRsInCR);
 			if(amountOfCRs == null){
@@ -299,7 +299,7 @@ public class MinConflReasonEdgeTest {
 
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pushDownGroupRule, pushDownGroupRulePreserve);
+		List<Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(pushDownGroupRule, pushDownGroupRulePreserve);
 //		System.out.println("HALT");
 		System.err.println("amount of conflictAtomCandidates: "+conflictAtomCandidates.size());
 		
@@ -319,7 +319,7 @@ public class MinConflReasonEdgeTest {
 		
 		for(Span mcr: mCRs){
 			System.err.println("is MCR instance of?");
-			if(mcr instanceof AtomicCoreCPA.MinimalConflictReason){
+			if(mcr instanceof MinimalConflictReason){
 				System.err.println("true");
 			}else {
 				System.err.println("false");
@@ -329,17 +329,17 @@ public class MinConflReasonEdgeTest {
 
 		Set<MinimalConflictReason> minimalConflictReasons = new HashSet<MinimalConflictReason>();
 		for(Span minimalConflictReason : mCRs){
-			minimalConflictReasons.add(atomicCoreCPA.new MinimalConflictReason(minimalConflictReason));
+			minimalConflictReasons.add(new MinimalConflictReason(minimalConflictReason));
 		}
 		
 
-		Set<InitialReason> computedConflictReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
+		Set<InitialConflictReason> computedConflictReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
 		System.err.println("amount of computedConflictReason: "+computedConflictReason.size());
 		
 		// Map<AnzahlMCR, AnzahlCRs>
 		Map<Integer, Integer> amoutOfMCRs = new HashMap<Integer, Integer>();
-		// wie groﬂ (= Anzahl Knoten) sind die InitialReason? 
-		for(InitialReason cr : computedConflictReason){
+		// wie groﬂ (= Anzahl Knoten) sind die InitialConflictReason? 
+		for(InitialConflictReason cr : computedConflictReason){
 			int amountOfMCRsInCR = cr.getOriginMCRs().size();
 			Integer amountOfCRs = amoutOfMCRs.get(amountOfMCRsInCR);
 			if(amountOfCRs == null){

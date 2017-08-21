@@ -10,8 +10,11 @@ import java.util.Set;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.util.EcoreUtil.Copier;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.MinimalConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.dependency.DependencyAtom;
+import org.eclipse.emf.henshin.cpa.atomic.dependency.MinimalDependencyReason;
 import org.eclipse.emf.henshin.model.Graph;
 import org.eclipse.emf.henshin.model.HenshinFactory;
 import org.eclipse.emf.henshin.model.Mapping;
@@ -19,24 +22,50 @@ import org.eclipse.emf.henshin.model.MappingList;
 import org.eclipse.emf.henshin.model.Node;
 import org.eclipse.emf.henshin.model.Rule;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+
 public class ProduceUseAtomicCoreCPA {
 	
 	Map<Rule, Copier> mappingOfInvertedRuleToRhsToLhsCopier;
+	
+
+	// equivalent to MinimalConflictReasonst
+	Set<MinimalDependencyReason> overallMinimalDependencyReasons;
+	
+	/**
 	
 	// Constructor
 	public ProduceUseAtomicCoreCPA(){
 		mappingOfInvertedRuleToRhsToLhsCopier = new HashMap<>();
 	}
 	
+	// equivalent to MinimalConflictReasonst
+	/**
+	 * @return the reasons
+	 */
+	public Set<MinimalDependencyReason> getMinimalDependencyReasons() {
+		return overallMinimalDependencyReasons;
+	}
 	
 	public List<DependencyAtom> computeDependencyAtoms(Rule rule1, Rule rule2){
 		
 		List<DependencyAtom> dependencyAtoms = new LinkedList<DependencyAtom>();
+		overallMinimalDependencyReasons = new HashSet<MinimalDependencyReason>();
+		mappingOfInvertedRuleToRhsToLhsCopier = new HashMap<Rule, Copier>();
 		
 		Rule invertedRule = invertRule(rule1);
 		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 		List<ConflictAtom> computedConflictAtoms = atomicCoreCPA.computeConflictAtoms(invertedRule, rule2);
+		Set<MinimalConflictReason> minimalConflictReasons = atomicCoreCPA.getMinimalConflictReasons();
+		
+//		TODO: als nächstes machen!
+		BiMap<MinimalConflictReason, MinimalDependencyReason> mcrToMdrMap = HashBiMap.create ();
+		BiMap<ConflictAtom, DependencyAtom> caToDaMap = HashBiMap.create ();
+		Set<Graph> transformedGraphMappingIntoR1RHS = new HashSet<Graph>();
+		//TODO: introduce bijektive mapping between MinimalConflictReason and MinimalDependencyReason 
+		//		and by using a MinimalDependencyReason constructor fill up the total mapping 
 		
 		Copier copierOfFormerRhsToLhs = mappingOfInvertedRuleToRhsToLhsCopier.get(invertedRule);
 				
@@ -52,27 +81,100 @@ public class ProduceUseAtomicCoreCPA {
 			Span spanOfConflictAtom = conflictAtom.getSpan();
 			adjustMappingFromLhsToRhs(rule1, copierOfFormerRhsToLhs, spanOfConflictAtom);
 			
+			DependencyAtom dependencyAtom = new DependencyAtom(spanOfConflictAtom);
+			caToDaMap.put(conflictAtom, dependencyAtom);
+			
 			
 			//DONE: neues Dependency Atom erstellen!
 			//TODO: Was ist mit den Reasons? Diese müssen auch noch angepasst werden!!!
 				//TODO: ein MCR ist mehreren Spans zugeordnet! Es muss also ein Lösung gefunden werden, sodass MCRs in MDRs überführt werden und allen zugehörigen dependencyAtoms zugeordnet werden! 
-			Set<Span> minimalConflictReasons = conflictAtom.reasons;
-			Set<Span> minimalDependencyReasons = minimalConflictReasons; // TODO: HIER muss die Anpassung noch stattfinden!
-			for(Span minimalDependencyReason : minimalDependencyReasons){
-				adjustMappingFromLhsToRhs(rule1, copierOfFormerRhsToLhs, minimalDependencyReason);
-			}
-			DependencyAtom dependencyAtom = new DependencyAtom(spanOfConflictAtom, minimalDependencyReasons);
 			
 			dependencyAtoms.add(dependencyAtom);
 		}
+		
+		List<MinimalConflictReason> orderedBySizeMinimalConflictReasons = orderMinimalConflictsReasonsByIncreasingSize(minimalConflictReasons);
+		for(MinimalConflictReason minimalConflictReason : orderedBySizeMinimalConflictReasons){
+//			Graph graphOfMcr = minimalConflictReason.getGraph();
+//			minimalConflictReason.getContainedConflictAtoms()
+			if(!isAdjustedToRhs(minimalConflictReason))
+				adjustMappingFromLhsToRhs(rule1, copierOfFormerRhsToLhs, minimalConflictReason);
+			
+			
+			 Set<MinimalDependencyReason> originMDRs =  new HashSet<MinimalDependencyReason>();//die MDRs aus denen sich der neue MDR ggf zusammensetzt ermitteln!
+			 for(MinimalConflictReason mcr : minimalConflictReason.getOriginMCRs()){
+				 originMDRs.add(mcrToMdrMap.get(mcr));
+			 }
+			
+			MinimalDependencyReason mdr = new MinimalDependencyReason(minimalConflictReason, originMDRs);
+			//TODO: MDR auf Grundlage des jeweiligen MCR erstellen. 
+			//		ggf. erst die "kleinen" MCRs bzw. MCRs abarbeiten und dann die großen, da die großen aus den kleinen zusammengesetzt sein können!
+			// 			dabei die zuvor erstellten DA nutzen.
+			//			mapping der erstellten MDRs aus MCRs fortführen!
+			 
+			for(ConflictAtom conflictAtom : minimalConflictReason.getContainedConflictAtoms()){
+				DependencyAtom dependencyAtom = caToDaMap.get(conflictAtom);
+				if(dependencyAtom != null) //null check should be superfluous but better be careful
+					mdr.addContainedDependencyAtom(dependencyAtom);
+			}
+			mcrToMdrMap.put(minimalConflictReason, mdr);
+			overallMinimalDependencyReasons.add(mdr);
+			
+		}
+		
+		// jedem MDR seine passendenden DA zuweisen
+		//		UND jedem DA seine minimalConflictReasons zuweisen! 
+		for(ConflictAtom conflictAtom : computedConflictAtoms){
+			DependencyAtom dependencyAtom = caToDaMap. get(conflictAtom);
+			for(MinimalConflictReason mcr : conflictAtom.getMinimalConflictReasons()){
+				MinimalDependencyReason minimalDependencyReason = mcrToMdrMap.get(mcr);
+				dependencyAtom.addMinimalDependencyReasons(minimalDependencyReason);
+				minimalDependencyReason.addContainedDependencyAtom(dependencyAtom);
+			}
+		}
+		
 		return dependencyAtoms;
 	}
 
 
-	private void adjustMappingFromLhsToRhs(Rule rule, Copier copierOfFormerRhsToLhs, Span span) {
+	private boolean isAdjustedToRhs(MinimalConflictReason minimalConflictReason) {
+		Node nodeInRule = minimalConflictReason.getMappingsInRule1().iterator().next().getImage(); // WARNING! source for NPE!!!
+		if(nodeInRule.getGraph() == minimalConflictReason.getRule1().getLhs()){
+			return false;
+		}else if(nodeInRule.getGraph() == minimalConflictReason.getRule1().getRhs()){
+			return true;
+		}
+		// something went wrong!
+		return false;
+	}
+
+	private List<MinimalConflictReason> orderMinimalConflictsReasonsByIncreasingSize(
+			Set<MinimalConflictReason> minimalConflictReasons) {
+//		List<MinimalConflictReason> orderMinimalConflictsReasonsByIncreasingSize = new LinkedList<MinimalConflictReason>();
+
+		// first order by size
+		Set<MinimalConflictReason> minimalConflictReasonsToOrder = new HashSet<MinimalConflictReason>(minimalConflictReasons);
+		List<MinimalConflictReason> minimalConflictReasonsOrderByOriginMCRs = new LinkedList<MinimalConflictReason>();
+		int amountOfMCRs = 0;
+		while(minimalConflictReasonsToOrder.size()>0){
+			for(MinimalConflictReason minimalConflictReasonToOrder : minimalConflictReasonsToOrder){
+				if(minimalConflictReasonToOrder.getOriginMCRs().size() == amountOfMCRs){
+					minimalConflictReasonsOrderByOriginMCRs.add(minimalConflictReasonToOrder);
+				}
+			}
+			amountOfMCRs++;
+			minimalConflictReasonsToOrder.removeAll(minimalConflictReasonsOrderByOriginMCRs); //TODO: führt das zu einer "ConcurrentModificationException"?
+		}
+			
+		// then order by amount of ConflictReasons
+			// superfluous
+		
+		return minimalConflictReasonsOrderByOriginMCRs;
+	}
+
+	private void adjustMappingFromLhsToRhs(Rule rule1, Copier copierOfFormerRhsToLhs, Span span) {
 		//			List<Mapping> mappingsFromConflictAtomGraphInRule1 = spanOfConflictAtom.getMappingsInRule1();
 		
-		for(Node rhsNodeInOrigRule1 : rule.getRhs().getNodes()){
+		for(Node rhsNodeInOrigRule1 : rule1.getRhs().getNodes()){
 			// zugehörigen Knoten in der LHS der invertierten Regel finden
 			// dazu den Copier nutzen
 			EObject eObject = copierOfFormerRhsToLhs.get(rhsNodeInOrigRule1);
@@ -171,5 +273,6 @@ public class ProduceUseAtomicCoreCPA {
 		
 		return invRule1;
 	}
+	
 
 }

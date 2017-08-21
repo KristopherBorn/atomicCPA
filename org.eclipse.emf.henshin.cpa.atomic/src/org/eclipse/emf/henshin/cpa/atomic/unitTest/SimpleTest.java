@@ -5,9 +5,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.MinimalConflictReason;
 import org.eclipse.emf.henshin.model.Module;
 import org.eclipse.emf.henshin.model.Rule;
 import org.eclipse.emf.henshin.model.Unit;
@@ -48,7 +48,7 @@ public class SimpleTest {
 //			System.out.println(conflictAtom);
 //		}
 		
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(deleteARule,
+		List<Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(deleteARule,
 				useAwithBRule);
 		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
@@ -89,7 +89,7 @@ public class SimpleTest {
 			System.out.println(conflictAtom);
 		}
 		
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(deleteARule,
+		List<Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(deleteARule,
 				useAwithBRule);
 		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
@@ -129,7 +129,7 @@ public class SimpleTest {
 			System.out.println(conflictAtom);
 		}
 		
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(deleteARule,
+		List<Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(deleteARule,
 				useAwithBRule);
 		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {
@@ -174,7 +174,7 @@ public class SimpleTest {
 			System.out.println(conflictAtom);
 		}
 		
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(deleteARule,
+		List<Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(deleteARule,
 				useAwithBRule);
 		Set<MinimalConflictReason> reasons = new HashSet<>();//
 		for (Span candidate : conflictAtomCandidates) {

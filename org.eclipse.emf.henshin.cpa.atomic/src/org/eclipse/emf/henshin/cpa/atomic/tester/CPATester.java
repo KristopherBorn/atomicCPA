@@ -75,7 +75,7 @@ public class CPATester extends Tester {
 		for (CriticalPair criticalPair : result) {
 			r += ", " + criticalPair.getCriticalElements().size();
 		}
-		return "Sizes = (" + r.substring(2) + ")";
+		return "";//"Sizes = (" + r.substring(2) + ")";
 	}
 
 }

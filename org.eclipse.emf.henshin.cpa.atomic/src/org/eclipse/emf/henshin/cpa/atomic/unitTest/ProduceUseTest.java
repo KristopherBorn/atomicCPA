@@ -4,8 +4,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.eclipse.emf.henshin.cpa.atomic.ProduceUseAtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
-import org.eclipse.emf.henshin.cpa.atomic.DependencyAtom;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
+import org.eclipse.emf.henshin.cpa.atomic.dependency.DependencyAtom;
+import org.eclipse.emf.henshin.cpa.atomic.dependency.MinimalDependencyReason;
 import org.eclipse.emf.henshin.model.Mapping;
 import org.eclipse.emf.henshin.model.Module;
 import org.eclipse.emf.henshin.model.Node;
@@ -74,11 +75,11 @@ public class ProduceUseTest {
 		Assert.assertNotNull(depAtom_Parameter_4_6);
 		
 		
-		Set<Span> dependencyReasonsOfMethod_4_4 = depAtom_Method_4_4.getReasons();
+		Set<MinimalDependencyReason> dependencyReasonsOfMethod_4_4 = depAtom_Method_4_4.getMinimalDependencyReasons();
 		Assert.assertEquals(1, dependencyReasonsOfMethod_4_4.size());
-		Set<Span> dependencyReasonsOfMethod_4_5 = depAtom_Method_4_5.getReasons();
+		Set<MinimalDependencyReason> dependencyReasonsOfMethod_4_5 = depAtom_Method_4_5.getMinimalDependencyReasons();
 		Assert.assertEquals(1, dependencyReasonsOfMethod_4_5.size());
-		Set<Span> dependencyReasonsOfMethod_4_6 = depAtom_Parameter_4_6.getReasons();
+		Set<MinimalDependencyReason> dependencyReasonsOfMethod_4_6 = depAtom_Parameter_4_6.getMinimalDependencyReasons();
 		Assert.assertEquals(1, dependencyReasonsOfMethod_4_6.size());
 
 		Span dependencyReasonOfMethod_4_4 = dependencyReasonsOfMethod_4_4.iterator().next();

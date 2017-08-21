@@ -16,12 +16,11 @@ import java.util.concurrent.TimeoutException;
 import org.eclipse.emf.ecore.util.EcoreUtil.Copier;
 import org.eclipse.emf.henshin.cpa.CPAOptions;
 import org.eclipse.emf.henshin.cpa.atomic.MinimalConflict;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.InitialReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
 import org.eclipse.emf.henshin.cpa.atomic.compareLogger.Logger2;
-//import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA.ConflictAtom;
-//import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.InitialConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.MinimalConflictReason;
 import org.eclipse.emf.henshin.cpa.atomic.tasks.AtomicResultContainer;
 import org.eclipse.emf.henshin.cpa.atomic.tasks.CalculateAtomicCpaTask;
 import org.eclipse.emf.henshin.cpa.atomic.tasks.CalculateCpaTask;
@@ -311,8 +310,8 @@ public class Runner {
 										
 										List<ConflictAtom> atomicCoreCpaConflictAtoms = resultKeeper.getConflictAtoms();
 										List<Span> atomicCoreCpaCandidates = resultKeeper.getCandidates();
-										Set<Span> atomicCoreMinimalConflictReasons = resultKeeper.getMinimalConflictReasons();
-										Set<InitialReason> atomicCoreConflictReasons = resultKeeper.getConflictReasons();
+										Set<MinimalConflictReason> atomicCoreMinimalConflictReasons = resultKeeper.getMinimalConflictReasons();
+										Set<InitialConflictReason> atomicCoreConflictReasons = resultKeeper.getConflictReasons();
 										
 //										long atomicEndTime = System.currentTimeMillis();
 //										long atomiRunTime = atomicEndTime - atomicStartTime;
@@ -388,7 +387,7 @@ public class Runner {
 											minimalConflicts.add(minimalConflict);
 										}
 										
-										// (16.04.2017) hinzufügen der InitialReason (die aus den minimalConflcitREason entstehen!)
+										// (16.04.2017) hinzufügen der InitialConflictReason (die aus den minimalConflcitREason entstehen!)
 										if(!canceled)
 											conflictReasonLogger.addData(firstRule, originalRuleOfRule2, String.valueOf(resultKeeper.getConflictReasonOverallTime()),
 													String.valueOf(atomicCoreConflictReasons.size()));

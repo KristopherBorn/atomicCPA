@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.eclipse.emf.common.util.EList;
-//import org.eclipse.emf.henshin.cpa.atomic.main.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.DependencyAtom;
 import org.eclipse.emf.henshin.cpa.result.CPAResult;
 import org.eclipse.emf.henshin.cpa.CPAOptions;
 import org.eclipse.emf.henshin.cpa.CpaByAGG;
@@ -17,10 +15,10 @@ import org.eclipse.emf.henshin.cpa.ICriticalPairAnalysis;
 import org.eclipse.emf.henshin.cpa.MinimalConflict;
 import org.eclipse.emf.henshin.cpa.UnsupportedRuleException;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.InitialReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.InitialConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.MinimalConflictReason;
 import org.eclipse.emf.henshin.model.Graph;
 import org.eclipse.emf.henshin.model.Module;
 import org.eclipse.emf.henshin.model.Node;
@@ -108,10 +106,10 @@ public class ComputeInitialReasonTest {
 			
 			Set<MinimalConflictReason> minimalConflictReasons = new HashSet<MinimalConflictReason>();
 			for(Span minimalConflictReason : allMinimalConflictReasons){
-				minimalConflictReasons.add(atomicCoreCPA.new MinimalConflictReason(minimalConflictReason));
+				minimalConflictReasons.add(new MinimalConflictReason(minimalConflictReason));
 			}
 			
-			Set<InitialReason> computeInitialReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
+			Set<InitialConflictReason> computeInitialReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
 			Assert.assertEquals(3, computeInitialReason.size());
 			
 			
@@ -172,10 +170,10 @@ public class ComputeInitialReasonTest {
 		
 		Set<MinimalConflictReason> minimalConflictReasons = new HashSet<MinimalConflictReason>();
 		for(Span minimalConflictReason : allMinimalConflictReasons){
-			minimalConflictReasons.add(atomicCoreCPA.new MinimalConflictReason(minimalConflictReason));
+			minimalConflictReasons.add(new MinimalConflictReason(minimalConflictReason));
 		}
 		
-		Set<InitialReason> computedInitialReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
+		Set<InitialConflictReason> computedInitialReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
 		Assert.assertEquals(17, computedInitialReason.size());
 		
 		//von diesen 17 potentiellen CRs verletzen 10 die dangling condition. 

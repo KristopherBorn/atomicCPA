@@ -52,7 +52,7 @@ public class CpaOnRefactoringRunner extends Runner{
 		String fullSubDirectoryPath = projectPath + subDirectoryPath;
 		
 		Runner runner = new Runner();
-		runner.setAnalysisKinds(true, true, true, true, true, true);
+		runner.setAnalysisKinds(false, false, true, true, false, true);
 		runner.run(fullSubDirectoryPath, deactivatedRules);
 	}
 }

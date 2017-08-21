@@ -8,8 +8,8 @@ import java.util.Set;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.MinimalConflictReason;
 import org.eclipse.emf.henshin.model.Edge;
 import org.eclipse.emf.henshin.model.Graph;
 import org.eclipse.emf.henshin.model.Module;
@@ -46,14 +46,14 @@ public class ComputeMinConflReasonsTest {
 
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeRule,
+		List<Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeRule,
 				pullUpEncapsulatedAttributeRule);
 
 		System.out.println("HALT");
 
 		assertEquals(5, conflictAtomCandidates.size());
 
-		for (AtomicCoreCPA.Span candidate : conflictAtomCandidates) {
+		for (Span candidate : conflictAtomCandidates) {
 			EList<Node> nodesOfCandidate = candidate.getGraph().getNodes();
 			assertEquals(1, nodesOfCandidate.size());
 		}

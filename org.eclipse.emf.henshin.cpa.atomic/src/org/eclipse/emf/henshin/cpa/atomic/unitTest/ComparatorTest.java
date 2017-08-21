@@ -13,11 +13,11 @@ import org.eclipse.emf.henshin.cpa.UnsupportedRuleException;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
 import org.eclipse.emf.henshin.cpa.atomic.CpaCdaComparator;
 import org.eclipse.emf.henshin.cpa.atomic.CpaCdaComparator.CompareResult;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictAtom;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.ConflictReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.InitialReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.MinimalConflictReason;
-import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA.Span;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.ConflictAtom;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.ConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.InitialConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.conflict.MinimalConflictReason;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
 import org.eclipse.emf.henshin.cpa.result.CPAResult;
 import org.eclipse.emf.henshin.cpa.result.CriticalPair;
 import org.eclipse.emf.henshin.model.Module;
@@ -82,15 +82,15 @@ public class ComparatorTest {
 		
 		Set<MinimalConflictReason> minimalConflictReasons = new HashSet<MinimalConflictReason>();
 		for(Span minimalConflictReason : allMinimalConflictReasons){
-			minimalConflictReasons.add(atomicCoreCPA.new MinimalConflictReason(minimalConflictReason));
+			minimalConflictReasons.add(new MinimalConflictReason(minimalConflictReason));
 		}
 		
-		Set<InitialReason> computedInitialReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
+		Set<InitialConflictReason> computedInitialReason = atomicCoreCPA.computeInitialReason(minimalConflictReasons);
 		Assert.assertEquals(7, computedInitialReason.size());
 		
-		Set<ConflictReason> conflictReasonsDerivedFromInitialReason = new HashSet<AtomicCoreCPA.ConflictReason>();
+		Set<ConflictReason> conflictReasonsDerivedFromInitialReason = new HashSet<ConflictReason>();
 		Set<MinimalConflictReason> originMCRs = new HashSet<MinimalConflictReason>();
-		for(InitialReason initialReason : computedInitialReason){
+		for(InitialConflictReason initialReason : computedInitialReason){
 			System.err.println(initialReason.toShortString());
 			originMCRs.addAll(initialReason.getOriginMCRs());
 			Set<ConflictAtom> byInitialReasonCoveredEdgeConflictAtoms = initialReason.getCoveredEdgeConflictAtoms();

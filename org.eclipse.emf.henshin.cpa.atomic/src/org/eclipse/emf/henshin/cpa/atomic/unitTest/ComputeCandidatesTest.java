@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.henshin.cpa.atomic.AtomicCoreCPA;
+import org.eclipse.emf.henshin.cpa.atomic.Span;
 import org.eclipse.emf.henshin.model.Module;
 import org.eclipse.emf.henshin.model.Node;
 import org.eclipse.emf.henshin.model.Rule;
@@ -41,14 +42,14 @@ public class ComputeCandidatesTest {
 		
 		AtomicCoreCPA atomicCoreCPA = new AtomicCoreCPA();
 		
-		List<AtomicCoreCPA.Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeRule, pullUpEncapsulatedAttributeRule);
+		List<Span> conflictAtomCandidates = atomicCoreCPA.computeAtomCandidates(decapsulateAttributeRule, pullUpEncapsulatedAttributeRule);
 				
 		assertEquals(5, conflictAtomCandidates.size());
 		
 		int amountOfConflictAtomCandidatesOfTypeMethod = 0;
 		int amountOfConflictAtomCandidatesOfTypeParameter = 0;
 		
-		for(AtomicCoreCPA.Span candidate : conflictAtomCandidates){
+		for(Span candidate : conflictAtomCandidates){
 			EList<Node> nodesOfCandidate = candidate.getGraph().getNodes();
 			//TODO: check that all mappings point in the LHSs
 			//TODO: check same type on all nodes!
