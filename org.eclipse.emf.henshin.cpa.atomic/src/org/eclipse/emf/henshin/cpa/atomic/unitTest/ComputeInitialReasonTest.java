@@ -201,7 +201,7 @@ public class ComputeInitialReasonTest {
 		CPAResult runConflictAnalysis;
 		int amountOfEssConflicts = -1;
 		try {
-			cpaByAGG.init(r2, r2, options);
+			cpaByAGG.init(r1, r2, options);
 			runConflictAnalysis = cpaByAGG.runConflictAnalysis();
 			amountOfEssConflicts = runConflictAnalysis.getCriticalPairs().size();
 			System.err.println("amount of ess CPs: " + amountOfEssConflicts);
